@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Static-only Worker: everything is served from ./dist. No Worker script, no server-side state.
+  // Payloads live in the URL fragment (#p=...), which browsers never send to the server.
+  "name": "discord-components-preview",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  },
+  "routes": [{ "pattern": "discord.cp20.dev", "custom_domain": true }],
+  "workers_dev": false,
+  "preview_urls": false
+}
