@@ -3,13 +3,13 @@ import { DICTIONARY } from "./dictionary";
 
 /**
  * Share link format (the only one this site reads)
- *   https://discord.cp20.dev/#p2=<base64url( deflate-raw( minified UTF-8 JSON, dictionary = DICTIONARY ) )>
+ *   https://discord.cp20.dev/#p3=<base64url( deflate-raw( minified UTF-8 JSON, dictionary = DICTIONARY ) )>
  * - deflate-raw: RFC 1951 stream, no zlib/gzip header, with DICTIONARY as the preset dictionary
  * - base64url: RFC 4648 §5 alphabet, no padding
  * - JSON is minified before compressing (text that isn't valid JSON is compressed as-is)
  * The fragment is never sent to the server.
  */
-export const PARAM = "p2";
+export const PARAM = "p3";
 const dictionary = strToU8(DICTIONARY);
 
 export function toBase64Url(bytes: Uint8Array): string {
@@ -42,7 +42,7 @@ export function encodePayload(text: string): string {
   return toBase64Url(deflateSync(strToU8(minify(text)), { level: 9, dictionary }));
 }
 
-/** Decodes a `p2` value into editor text (pretty-printed when it is JSON). Null when it can't be read. */
+/** Decodes a `p3` value into editor text (pretty-printed when it is JSON). Null when it can't be read. */
 export function decodePayload(value: string): string | null {
   if (!/^[A-Za-z0-9_-]+$/.test(value)) return null;
   let text: string;
@@ -58,9 +58,9 @@ export function decodePayload(value: string): string | null {
   }
 }
 
-/** Reads `p2=` from a location hash such as "#p2=…" */
+/** Reads `p3=` from a location hash such as "#p3=…" */
 export function readFragment(hash: string): string | null {
-  const m = /(?:^|&)p2=([^&]*)/.exec(hash.replace(/^#/, ""));
+  const m = /(?:^|&)p3=([^&]*)/.exec(hash.replace(/^#/, ""));
   return m && m[1] ? decodePayload(m[1]) : null;
 }
 

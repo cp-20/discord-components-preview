@@ -1,18 +1,53 @@
 /**
- * Preset dictionary for `#p2=` share links (version 1). FROZEN: links depend on these exact bytes.
- * Changing anything here breaks every existing link; a new dictionary needs a new prefix (#p3=).
+ * Preset dictionary for `#p3=` share links (version 2). FROZEN: links depend on these exact bytes.
+ * Changing anything here breaks every existing link; a new dictionary needs a new prefix (#p4=).
  *
- * Phrases are minified JSON as Discord payloads are usually written. Deflate references the
- * dictionary by distance from the end, so the rarest phrases come first and the most common last.
- * The dictionary is the UTF-8 encoding of the joined string. It starts with common Japanese
- * punctuation and words (3 bytes per character in UTF-8), then ASCII JSON phrases.
+ * Deflate can copy any run of bytes from the dictionary, and a copy is cheaper the nearer it sits
+ * to the end, so the rarest entries come first and the most common last:
+ *   1. common Japanese words, then common English words (the text of a message is most of its size)
+ *   2. minified JSON phrases as Discord payloads are usually written (keys, component shapes)
+ * The dictionary is the UTF-8 encoding of the joined string.
  */
 const phrases = [
-  // Japanese (rarest overall, but frequent in Japanese payloads)
-  "「」（）・〜、。年月日時分曜日",
-  "です。ます。ください。してください。",
-  "について、こちらのお知らせ",
-  "更新予定時間場所予約詳細確認設定一覧開始終了",
+  // Japanese words and phrases, rarest first
+  '日曜土曜金曜木曜水曜火曜月曜みなさん皆さん全員少しぜひまたまだもうにも',
+  'とはではにはのはのででしょうでしたますですお待ちくださいくださいませんましたしますしましたしています',
+  'ありますありませんできませんできます申し訳ありませんすみません失礼しますお疲れさまですこんにちはおはようございますおめでとうありがとうありがとうございますお願いしますよろしくお願いしますご不便',
+  'ご協力ご参加ご確認ご利用使用利用可能必要方法場合ときものことなどためによる',
+  'についてよりからまで以下以上期限期間無料料金予約ページサイト公式リンクファイル',
+  '画像動画配信イベント運営管理者担当者お問い合わせ問い合わせ連絡返信回答質問ルール注意内容',
+  '説明一覧詳細結果投票リアクション通知設定ボタンメッセージコマンドボットユーザーロールメンバーチャンネル',
+  'サーバーメンテナンス再開延期中止終了開始完了対応修正削除追加更新変更確認登録',
+  '申込申し込み受付締切締め切り募集参加者参加場所日時時間予定開催午後午前毎週',
+  '来月今月来週今週昨日明日今日本日告知お知らせ',
+  // English: capitalized forms of the most common words, then words with a leading space, rarest first
+  'Point House Animal Away Air Spell Play Off Change Again Picture Hand Kind Try Move Us Home Different Land Need Read Men Went Ask',
+  'Why Here Too Same Tell Great Help Say Think Over Give Good Year Take Know Only Most Where Just Through Very Well Work Any',
+  'Back Also After New Part May Made Come Get Did Day Down Long Find Now Its Oil Who Call Been Water First Than My',
+  'People Could Way No Number See Go Write More Two Look Has Time Into Him Like Make Would Her Some So These Them Then',
+  'Many Out About Other Up Will If Their How Do She Which Each An Use There Said Can Your When We Were All What',
+  'Not But Word By Had One Or From Have This Be At They His With As Are On For Was He It That You',
+  'Is In To And Of The',
+  ' December November October September August July June May April March February January Sunday Saturday Friday Thursday Wednesday Tuesday Monday listen played playing music video',
+  ' live stream score players player match games game team answer question results poll vote enter entries winner leaderboard rank points level account profile links',
+  ' link guide rules read none all less more back previous next queue waiting pending completed complete successful success failed warning errors error status offline',
+  ' online left leave joined join reminders reminder scheduled schedule events event notifications notification disabled disable enabled enable setting settings options option pick choose select',
+  ' buttons button click reactions reaction react reply commands command messages message bots bot users user roles role members member channels channel servers server support',
+  ' issues issue bugs bug fix fixed features feature released release version new now available updates updated update hours minutes tonight evening afternoon morning month',
+  ' weekend week yesterday tomorrow today welcome thank thanks please family leave being song list soon talk young cut mountain sometimes girl above let almost',
+  ' really far watch face eat enough idea miss later second without stop hear book once state carry four river took grow began sea white',
+  ' walk night mile car feet side children until important run often group got together paper both those always life begin example open hard next',
+  ' seem something close might along while few left saw story under head thought light eye earth city start never tree keep father school last',
+  ' plant country below own between food add near every high world should learn still study found answer mother letter page point house animal away',
+  ' air spell play off change again picture hand kind try move us home different land need read men went ask why here too same',
+  ' tell great help say think over give good year take know only most where just through very well work any back also after new',
+  ' part may made come get did day down long find now its oil who call been water first than my people could way no',
+  ' number see go write more two look has time into him like make would her some so these them then many out about other',
+  ' up will if their how do she which each an use there said can your when we were all what not but word by',
+  ' had one or from have this be at they his with as are on for was he it that you is in to and',
+  ' of the',
+  // Japanese punctuation
+  '「」（）・〜、。年月日時分曜日',
   // rare: webhook fields, select details, polls of keys
   '"allowed_mentions":{"parse":[]}',
   '"attachments":[]',
@@ -95,6 +130,18 @@ const phrases = [
   '](https://',
   '\\n- ',
   '\\n\\n',
+  // common colors (Discord brand palette) and more shapes
+  '"color":15548997',
+  '"color":5763719',
+  '"color":16705372',
+  '"color":3447003',
+  '"color":5793266',
+  '"accent_color":5793266',
+  '{"type":17,"components":[',
+  '{"type":10,"content":"# ',
+  '{"type":10,"content":"### ',
+  '{"type":9,"components":[{"type":10,"content":"',
+  '"accessory":{"type":2,"style":',
   // components v2
   '{"type":14,"divider":false,"spacing":2}',
   '{"type":14,"divider":true,"spacing":2}',
@@ -110,5 +157,5 @@ const phrases = [
   '"},{"type":10,"content":"',
 ];
 
-export const DICTIONARY_VERSION = 1;
+export const DICTIONARY_VERSION = 2;
 export const DICTIONARY = phrases.join("");

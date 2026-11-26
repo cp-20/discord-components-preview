@@ -4,11 +4,11 @@ import { createHash } from "node:crypto";
 import { DICTIONARY } from "./src/dictionary";
 import { buildLlmsTxt } from "./src/llms";
 
-/** Generates /llms.txt and /p2-dictionary.txt from the source, in dev and in the build */
+/** Generates /llms.txt and /p3-dictionary.txt from the source, in dev and in the build */
 function agentDocs(): Plugin {
   const files = () => {
     const sha = createHash("sha256").update(DICTIONARY, "utf8").digest("hex");
-    return { "llms.txt": buildLlmsTxt(sha), "p2-dictionary.txt": DICTIONARY };
+    return { "llms.txt": buildLlmsTxt(sha), "p3-dictionary.txt": DICTIONARY };
   };
   return {
     name: "agent-docs",

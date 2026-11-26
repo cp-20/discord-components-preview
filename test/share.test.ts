@@ -1,18 +1,20 @@
 import { describe, expect, it } from "vitest";
 import zlib from "node:zlib";
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { decodePayload, encodePayload, minify, readFragment, shareUrl } from "../src/share";
 import { DICTIONARY } from "../src/dictionary";
 import { presets, presetJson } from "../src/presets";
+import { buildLlmsTxt } from "../src/llms";
 
-const pretty = JSON.stringify({ flags: 32768, components: [{ type: 10, content: "上映時間 **13:15** <:check:921544057312915498>" }] }, null, 2);
+const pretty = JSON.stringify({ flags: 32768, components: [{ type: 10, content: "開始時刻 **10:00** <:check:921544057312915498>" }] }, null, 2);
 
-describe("share links (#p2=)", () => {
+describe("share links (#p3=)", () => {
   it("round-trips every preset through the URL", () => {
     for (const p of presets) {
       const text = presetJson(p);
-      const url = shareUrl("https://discord.cp20.dev/gallery#p2=old", text);
-      expect(url, p.id).toMatch(/^https:\/\/discord\.cp20\.dev\/gallery#p2=[A-Za-z0-9_-]+$/);
+      const url = shareUrl("https://discord.cp20.dev/gallery#p3=old", text);
+      expect(url, p.id).toMatch(/^https:\/\/discord\.cp20\.dev\/gallery#p3=[A-Za-z0-9_-]+$/);
       expect(readFragment(new URL(url).hash), p.id).toBe(text);
     }
   });
@@ -43,13 +45,26 @@ describe("share links (#p2=)", () => {
   it("ignores retired formats and garbage", () => {
     const legacy = zlib.deflateRawSync(Buffer.from(pretty)).toString("base64url");
     expect(readFragment("#p=" + legacy)).toBeNull();
-    expect(readFragment("#p2=%%%")).toBeNull();
-    expect(readFragment("#p2=" + encodeURIComponent(pretty))).toBeNull();
+    const p2 = zlib.deflateRawSync(Buffer.from(JSON.stringify(JSON.parse(pretty))), { level: 9, dictionary: readFileSync(new URL("./fixtures/p2-dictionary.txt", import.meta.url)) });
+    expect(readFragment("#p2=" + p2.toString("base64url"))).toBeNull();
+    expect(readFragment("#p3=%%%")).toBeNull();
+    expect(readFragment("#p3=" + encodeURIComponent(pretty))).toBeNull();
     expect(readFragment("#x=1")).toBeNull();
   });
   it("keeps the frozen dictionary byte-for-byte", () => {
-    // Every #p2= link depends on these bytes. If this fails, revert the dictionary or move to #p3=.
+    // Every #p3= link depends on these bytes. If this fails, revert the dictionary or move to #p4=.
     const bytes = Buffer.from(DICTIONARY, "utf8");
     expect({ length: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex") }).toMatchSnapshot();
+  });
+});
+
+describe("/llms.txt", () => {
+  const txt = buildLlmsTxt(createHash("sha256").update(Buffer.from(DICTIONARY, "utf8")).digest("hex"));
+  it("publishes the exact dictionary, and every example link decodes with it the way an agent would", () => {
+    const published = Buffer.from(JSON.parse(/### Dictionary[\s\S]*?```json\n(.*)\n```/.exec(txt)![1]), "utf8");
+    expect(published.equals(Buffer.from(DICTIONARY, "utf8"))).toBe(true);
+    const links = [...txt.matchAll(/^Link: \S+#p3=([A-Za-z0-9_-]+)\n\n```json\n(.*)\n```/gm)];
+    expect(links.length).toBe(presets.length);
+    for (const [, value, json] of links) expect(zlib.inflateRawSync(Buffer.from(value, "base64url"), { dictionary: published }).toString()).toBe(json);
   });
 });

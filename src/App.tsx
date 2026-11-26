@@ -83,7 +83,7 @@ export function App() {
   // Keep the address bar and the local draft in sync, debounced
   useEffect(() => {
     const t = setTimeout(() => {
-      if (route === "editor") history.replaceState(null, "", `/#p2=${fragment}`);
+      if (route === "editor") history.replaceState(null, "", `/#p3=${fragment}`);
       store.set("draft", text);
     }, 300);
     return () => clearTimeout(t);
@@ -94,12 +94,12 @@ export function App() {
     if (route === "editor") editor.current?.view.requestMeasure();
   }, [route]);
 
-  // Links from before #p2= can't be read any more; say so instead of silently showing the draft
+  // Links in an older format (#p=, #p2=) can't be read any more; say so instead of silently showing the draft
   useEffect(() => {
-    if (/(?:^#|&)p=/.test(location.hash)) showToast("This link uses the retired #p= format and can't be opened");
+    if (/(?:^#|&)p2?=/.test(location.hash)) showToast("This link uses a retired format and can't be opened");
   }, []);
 
-  /** Opens a #p2= hash in the editor, the same path a shared link takes */
+  /** Opens a #p3= hash in the editor, the same path a shared link takes */
   const openHash = useCallback(
     (hash: string) => {
       const incoming = readFragment(hash);
@@ -207,7 +207,7 @@ export function App() {
             onClick={(e) => {
               if (!isPlainClick(e)) return;
               e.preventDefault();
-              go("editor", `#p2=${fragment}`);
+              go("editor", `#p3=${fragment}`);
             }}
           >
             <svg class="brand-mark" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
@@ -231,7 +231,7 @@ export function App() {
                   if (!isPlainClick(e)) return;
                   e.preventDefault();
                   if (r === route) return;
-                  go(r, r === "editor" ? `#p2=${fragment}` : "");
+                  go(r, r === "editor" ? `#p3=${fragment}` : "");
                 }}
               >
                 {r === "editor" ? "Editor" : r === "gallery" ? "Gallery" : "Docs"}
@@ -305,7 +305,7 @@ export function App() {
           <footer class="pane-foot">
             <Icon name="lock" size={14} />
             <span class="mono">
-              #p2= <span class="num">{(fragment.length + 4).toLocaleString("en-US")}</span> chars
+              #p3= <span class="num">{(fragment.length + 4).toLocaleString("en-US")}</span> chars
             </span>
             <span class="foot-note">Stored in the link's fragment, which never reaches the server</span>
           </footer>

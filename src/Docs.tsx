@@ -60,18 +60,18 @@ function Section({ id, title, lead, children }: { id: string; title: string; lea
 }
 
 const python = `import base64, json, zlib, urllib.request
-DICT = urllib.request.urlopen("${SITE}/p2-dictionary.txt").read()
+DICT = urllib.request.urlopen("${SITE}/p3-dictionary.txt").read()
 
-def p2_link(payload):
+def p3_link(payload):
     c = zlib.compressobj(9, zlib.DEFLATED, -15, zdict=DICT)  # -15 = raw deflate
     raw = c.compress(json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode()) + c.flush()
-    return "${SITE}/#p2=" + base64.urlsafe_b64encode(raw).decode().rstrip("=")`;
+    return "${SITE}/#p3=" + base64.urlsafe_b64encode(raw).decode().rstrip("=")`;
 
 const node = `import zlib from "node:zlib";
-const DICT = Buffer.from(await (await fetch("${SITE}/p2-dictionary.txt")).arrayBuffer());
+const DICT = Buffer.from(await (await fetch("${SITE}/p3-dictionary.txt")).arrayBuffer());
 
-const p2Link = (payload) =>
-  "${SITE}/#p2=" +
+const p3Link = (payload) =>
+  "${SITE}/#p3=" +
   zlib.deflateRawSync(Buffer.from(JSON.stringify(payload)), { level: 9, dictionary: DICT }).toString("base64url");`;
 
 function useSha256(text: string) {
@@ -230,16 +230,16 @@ export function Docs({ theme, onOpen, onInteract }: DocsProps) {
         <Section
           id="links"
           title="Share links"
-          lead="A link carries the whole payload in its fragment: minified JSON, compressed with raw DEFLATE and a preset dictionary of common Discord phrases, then base64url."
+          lead="A link carries the whole payload in its fragment: minified JSON, compressed with raw DEFLATE and a preset dictionary of common words and Discord phrases, then base64url."
         >
           <pre class="formula mono">
-            {SITE}/#p2= base64url( deflate-raw( UTF-8( minified JSON ), dictionary ) )
+            {SITE}/#p3= base64url( deflate-raw( UTF-8( minified JSON ), dictionary ) )
           </pre>
           <ol class="doc-list steps">
             <li>Serialize the payload as JSON. Minified is shortest; the editor pretty-prints it on open.</li>
             <li>Encode as UTF-8.</li>
             <li>Compress with raw DEFLATE (RFC 1951, no zlib header or checksum) using the dictionary below as the preset dictionary. Level 9 gives the shortest links.</li>
-            <li>Encode as base64url (RFC 4648 §5) without padding, and append it after #p2=.</li>
+            <li>Encode as base64url (RFC 4648 §5) without padding, and append it after #p3=.</li>
           </ol>
           <CodeBlock label="Python" code={python} />
           <CodeBlock label="Node.js" code={node} />
@@ -251,7 +251,7 @@ export function Docs({ theme, onOpen, onInteract }: DocsProps) {
                 , SHA-256 <code class="sha">{sha}</code>
               </>
             )}
-            . Also served as raw bytes at <a href="/p2-dictionary.txt">/p2-dictionary.txt</a>. It is frozen: a new dictionary would get a new prefix.
+            . Also served as raw bytes at <a href="/p3-dictionary.txt">/p3-dictionary.txt</a>. It holds common Japanese and English words, then JSON phrases frequent in Discord payloads. It is frozen: a new dictionary would get a new prefix.
           </p>
           <CodeBlock label="JSON string" code={JSON.stringify(DICTIONARY)} />
         </Section>

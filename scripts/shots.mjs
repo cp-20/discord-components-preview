@@ -7,7 +7,7 @@ import { readFileSync, mkdirSync } from "node:fs";
 const [base = "http://localhost:4789", out = "shots"] = process.argv.slice(2);
 mkdirSync(out, { recursive: true });
 // Links are built the way /llms.txt tells agents to, with the dictionary the site serves
-const dictionary = Buffer.from(await (await fetch(base + "/p2-dictionary.txt")).arrayBuffer());
+const dictionary = Buffer.from(await (await fetch(base + "/p3-dictionary.txt")).arrayBuffer());
 const enc = (s) => {
   let text = s;
   try {
@@ -24,7 +24,7 @@ const cases = [
   { name: "view-gallery-dark", path: "/gallery", hash: "", theme: "dark" },
   { name: "view-gallery-light", path: "/gallery", hash: "", theme: "light" },
   { name: "view-docs-dark", path: "/docs", hash: "", theme: "dark" },
-  ...Object.entries(extra).map(([name, payload]) => ({ name, hash: "#p2=" + enc(typeof payload === "string" ? payload : JSON.stringify(payload, null, 2)), theme: "dark" })),
+  ...Object.entries(extra).map(([name, payload]) => ({ name, hash: "#p3=" + enc(typeof payload === "string" ? payload : JSON.stringify(payload, null, 2)), theme: "dark" })),
 ];
 for (const c of cases) {
   for (const vp of [{ tag: "desk", width: 1440, height: 900 }, ...(/^(default|view-)/.test(c.name) ? [{ tag: "phone", width: 390, height: 844, mobile: true }] : [])]) {
@@ -68,10 +68,10 @@ for (const c of cases) {
   await page.getByRole("button", { name: /Copy link/ }).click();
   const url = await page.evaluate(() => navigator.clipboard.readText());
   console.log("copied", url.slice(0, 60), url.length);
-  const p2 = await ctx.newPage();
-  await p2.goto(url);
-  await p2.waitForTimeout(300);
-  console.log("roundtrip danger button:", await p2.locator(".dc-btn.danger").count());
+  const p3 = await ctx.newPage();
+  await p3.goto(url);
+  await p3.waitForTimeout(300);
+  console.log("roundtrip danger button:", await p3.locator(".dc-btn.danger").count());
   await ctx.close();
 }
 await browser.close();

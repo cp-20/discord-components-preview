@@ -35,31 +35,31 @@ const showtimes = {
       components: [
         {
           type: 10,
-          content: "### タコピーの原罪 ありがとう、また明日\n11月27日 (金) の上映時間です",
+          content: "### 星降る港の物語\n12月4日 (金) の上映時間です",
         },
         { type: 14, divider: true, spacing: 1 },
         {
           type: 9,
-          components: [{ type: 10, content: "**ヒューマントラストシネマ渋谷**\n13:15〜15:55 ・ 20:05〜22:45" }],
-          accessory: { type: 2, style: 5, label: "予約", url: "https://ttcg.jp/human_shibuya/" },
+          components: [{ type: 10, content: "**サンプルシネマ渋谷**\n13:00〜15:30 ・ 19:00〜21:30" }],
+          accessory: { type: 2, style: 5, label: "予約", url: "https://example.com/cinema/shibuya" },
         },
         { type: 14, divider: true, spacing: 2 },
         { type: 10, content: "-# 少し離れた劇場" },
         {
           type: 9,
-          components: [{ type: 10, content: "**シネマシティ (立川)**\n11:30〜14:09 ・ 17:25〜20:04" }],
-          accessory: { type: 2, style: 5, label: "予約", url: "https://cinemacity.co.jp/" },
+          components: [{ type: 10, content: "**サンプルシネマ横浜**\n11:00〜13:30 ・ 17:00〜19:30" }],
+          accessory: { type: 2, style: 5, label: "予約", url: "https://example.com/cinema/yokohama" },
         },
         {
           type: 9,
-          components: [{ type: 10, content: "**チネチッタ (川崎)**\n10:30〜13:10 ほか" }],
-          accessory: { type: 2, style: 5, label: "予約", url: "https://cinecitta.co.jp/" },
+          components: [{ type: 10, content: "**みなとシアター (大宮)**\n10:30〜13:00 ほか" }],
+          accessory: { type: 2, style: 5, label: "予約", url: "https://example.com/theater/omiya" },
         },
         { type: 14, divider: true, spacing: 1 },
         {
           type: 10,
           content:
-            "-# 109シネマズ二子玉川は改修工事のため休館中です。上映時間は変更になる場合があるため、予約前に各劇場の公式サイトでご確認ください。",
+            "-# サンプルシネマ新宿は改装のため休館中です。上映時間は変更になる場合があるため、予約前に各劇場の公式サイトでご確認ください。",
         },
       ],
     },

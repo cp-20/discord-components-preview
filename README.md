@@ -11,7 +11,7 @@ Share any payload as a link; the JSON travels in the URL fragment, so it never r
 | [`/gallery`](https://discord.cp20.dev/gallery) | Every example, rendered, each with *Open in editor* |
 | [`/docs`](https://discord.cp20.dev/docs) | Formats, limits and the link format, for people |
 | [`/llms.txt`](https://discord.cp20.dev/llms.txt) | The same for AI agents: link algorithm, exact dictionary, every format, example links |
-| [`/p2-dictionary.txt`](https://discord.cp20.dev/p2-dictionary.txt) | The compression dictionary as raw bytes |
+| [`/p3-dictionary.txt`](https://discord.cp20.dev/p3-dictionary.txt) | The compression dictionary as raw bytes |
 
 `/llms.txt` is generated from the source at build time (`src/llms.ts`, `src/spec.ts`), so it always matches what the site does.
 
@@ -60,38 +60,37 @@ On phones the editor and the preview are two tabs.
 ## Share link format
 
 ```
-https://discord.cp20.dev/#p2=<payload>
+https://discord.cp20.dev/#p3=<payload>
 payload = base64url( deflate-raw( UTF-8( minified JSON ), dictionary = DICTIONARY ) )   // no padding
 ```
 
-- Raw DEFLATE (RFC 1951, no zlib header) with a **preset dictionary** of phrases common in Discord payloads (`src/dictionary.ts`, 1,993 bytes, version 1). The dictionary is frozen; a different one would need a new prefix (`#p3=`).
+- Raw DEFLATE (RFC 1951, no zlib header) with a **preset dictionary** (`src/dictionary.ts`, 6,554 bytes, version 2): common Japanese and English words, then minified JSON phrases common in Discord payloads, rarest first. The dictionary is frozen; a different one would need a new prefix (`#p4=`).
 - The JSON is minified before compressing and pretty-printed when a link is opened.
-- `#p2=` is the only format the site reads. Links from the retired `#p=` format show a notice instead of a payload.
+- `#p3=` is the only format the site reads. Links in the retired `#p=` and `#p2=` formats show a notice instead of a payload.
 
-Effect on the bundled examples (fragment length in characters, `#p=` = the retired format: deflate of the pretty-printed editor text):
+Fragment length in characters, `#p2=` (version 1 dictionary, 1,993 bytes) vs `#p3=`. The text of a message is most of a link, so the larger dictionary helps most on ordinary prose; the bundled examples are dense with ids, hashes and URLs.
 
-| example | `#p=` | `#p2=` | change |
+| set | `#p2=` | `#p3=` | change |
 | --- | ---: | ---: | ---: |
-| Movie showtimes | 915 | 618 | −32% |
-| Rich embed | 735 | 526 | −28% |
-| Content, embeds and buttons | 685 | 451 | −34% |
-| Media gallery | 555 | 300 | −46% |
-| Plain message | 385 | 355 | −8% |
+| 10 bundled examples | 4,317 | 4,054 | −6.1% |
+| 10 held-out payloads (`test/fixtures`) | 2,395 | 1,997 | −16.6% |
 
-`test/compression.test.ts` checks every preset gets shorter. Generating a link elsewhere:
+Also measured and not adopted: shortening JSON keys to one-letter tokens (−1.3%, and a custom transform agents would have to reimplement), brotli without a custom dictionary (+13%), zstd with the same dictionary (+5%), a 20 KB dictionary with 2,000 more English words (another −2% for three times the size).
+
+`test/compression.test.ts` prints these numbers and checks no example gets longer. Generating a link elsewhere:
 
 ```python
 import base64, json, zlib, urllib.request
-DICT = urllib.request.urlopen("https://discord.cp20.dev/p2-dictionary.txt").read()
+DICT = urllib.request.urlopen("https://discord.cp20.dev/p3-dictionary.txt").read()
 c = zlib.compressobj(9, zlib.DEFLATED, -15, zdict=DICT)          # -15 = raw deflate
 raw = c.compress(json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode()) + c.flush()
-url = "https://discord.cp20.dev/#p2=" + base64.urlsafe_b64encode(raw).decode().rstrip("=")
+url = "https://discord.cp20.dev/#p3=" + base64.urlsafe_b64encode(raw).decode().rstrip("=")
 ```
 
 ```js
 import zlib from "node:zlib";
-const DICT = Buffer.from(await (await fetch("https://discord.cp20.dev/p2-dictionary.txt")).arrayBuffer());
-const url = "https://discord.cp20.dev/#p2=" +
+const DICT = Buffer.from(await (await fetch("https://discord.cp20.dev/p3-dictionary.txt")).arrayBuffer());
+const url = "https://discord.cp20.dev/#p3=" +
   zlib.deflateRawSync(Buffer.from(JSON.stringify(payload)), { level: 9, dictionary: DICT }).toString("base64url");
 ```
 
@@ -101,9 +100,9 @@ The fragment (`#…`) is not part of HTTP requests, so payloads stay in the brow
 
 ```sh
 pnpm install
-pnpm dev          # Vite dev server (also serves /llms.txt and /p2-dictionary.txt)
+pnpm dev          # Vite dev server (also serves /llms.txt and /p3-dictionary.txt)
 pnpm check        # tsc + vitest
-pnpm build        # -> dist/, including llms.txt and p2-dictionary.txt
+pnpm build        # -> dist/, including llms.txt and p3-dictionary.txt
 pnpm exec vite preview --port 4173 &
 node scripts/smoke.mjs http://localhost:4173          # main flows end to end (also works against production)
 node scripts/shots.mjs http://localhost:4173 shots    # screenshots of the views and edge cases
@@ -113,7 +112,7 @@ Stack: Vite, Preact, CodeMirror 6, jsonc-parser (error positions), fflate (defla
 
 | File | Role |
 | --- | --- |
-| `src/share.ts`, `src/dictionary.ts` | `#p2=` encoding and the frozen dictionary |
+| `src/share.ts`, `src/dictionary.ts` | `#p3=` encoding and the frozen dictionary |
 | `src/validate.ts` | errors and warnings with source positions |
 | `src/Preview.tsx`, `src/embed.ts`, `src/emoji.ts`, `src/markdown.ts` | the client look-alike |
 | `src/spec.ts`, `src/llms.ts` | format tables shared by `/docs` and `/llms.txt` |
