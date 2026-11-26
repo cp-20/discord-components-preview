@@ -8,7 +8,8 @@
     "test": "vitest run",
     "check": "tsc --noEmit && vitest run",
     "preview": "vite build && wrangler dev",
-    "deploy": "vite build && wrangler deploy"
+    "deploy": "vite build && wrangler deploy",
+    "og": "node scripts/og-image.mjs"
   },
   "packageManager": "pnpm@12.11.2",
   "dependencies": {

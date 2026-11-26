@@ -8,6 +8,7 @@ import { Docs } from "./Docs";
 import { Preview } from "./Preview";
 import { createEditor, type EditorHandle } from "./editor";
 import { Icon } from "./icons";
+import { PAGES } from "./seo";
 import type { Issue, Path } from "./types";
 
 type Theme = "dark" | "light";
@@ -61,6 +62,10 @@ export function App() {
   const [toast, setToast] = useState<{ text: string; id: number } | null>(null);
   const [split, setSplit] = useState(() => Number(store.get("split")) || 0.46);
   const [route, go] = useRoute();
+  useEffect(() => {
+    document.title = PAGES[route].title;
+    document.querySelector('meta[name="description"]')?.setAttribute("content", PAGES[route].description);
+  }, [route]);
   const editorHost = useRef<HTMLDivElement>(null);
   const editor = useRef<EditorHandle | null>(null);
   const panes = useRef<HTMLElement>(null);

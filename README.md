@@ -102,7 +102,8 @@ The fragment (`#…`) is not part of HTTP requests, so payloads stay in the brow
 pnpm install
 pnpm dev          # Vite dev server (also serves /llms.txt and /p3-dictionary.txt)
 pnpm check        # tsc + vitest
-pnpm build        # -> dist/, including llms.txt and p3-dictionary.txt
+pnpm build        # -> dist/, including llms.txt, p3-dictionary.txt, robots.txt, sitemap.xml, gallery.html, docs.html
+pnpm og           # re-render public/og.png (from scripts/og/og.html), apple-touch-icon.png, favicon.ico
 pnpm exec vite preview --port 4173 &
 node scripts/smoke.mjs http://localhost:4173          # main flows end to end (also works against production)
 node scripts/shots.mjs http://localhost:4173 shots    # screenshots of the views and edge cases
@@ -113,6 +114,7 @@ Stack: Vite, Preact, CodeMirror 6, jsonc-parser (error positions), fflate (defla
 | File | Role |
 | --- | --- |
 | `src/share.ts`, `src/dictionary.ts` | `#p3=` encoding and the frozen dictionary |
+| `src/seo.ts` | Per-route title/description, the `/gallery` and `/docs` shells, robots.txt, sitemap.xml (`index.html` holds the `/` tags; `test/seo.test.ts` keeps them in sync) |
 | `src/validate.ts` | errors and warnings with source positions |
 | `src/Preview.tsx`, `src/embed.ts`, `src/emoji.ts`, `src/markdown.ts` | the client look-alike |
 | `src/spec.ts`, `src/llms.ts` | format tables shared by `/docs` and `/llms.txt` |

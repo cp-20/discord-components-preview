@@ -1,0 +1,119 @@
+<!doctype html>
+<!-- Source of public/og.png (1200x630). Rendered by scripts/og-image.mjs; edit here, then run `pnpm og`. -->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  @font-face { font-family: Geist; src: url(../../node_modules/@fontsource-variable/geist/files/geist-latin-wght-normal.woff2) format("woff2"); font-weight: 100 900; }
+  @font-face { font-family: Geist Mono; src: url(../../node_modules/@fontsource-variable/geist-mono/files/geist-mono-latin-wght-normal.woff2) format("woff2"); font-weight: 100 900; }
+  :root {
+    --bg: #141415; --surface: #19191b; --raised: #232325; --sunken: #0f0f10;
+    --hairline: rgba(237,237,237,.08); --hairline-strong: rgba(237,237,237,.14);
+    --text: #ededed; --text-2: #a1a1a6; --muted: #85858b; --accent: #5ec4b0;
+    --key: #8fc1e3; --str: #d9bb8c; --num: #e59d80; --punct: #85858b;
+    --dc-bg: #313338; --dc-container: #2b2d31; --dc-text: #dbdee1; --dc-head: #f2f3f5; --dc-muted: #949ba4;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body { background: var(--bg); color: var(--text); font-family: Geist, sans-serif; position: relative; -webkit-font-smoothing: antialiased; }
+
+  .copy { position: absolute; left: 64px; top: 0; bottom: 0; width: 420px; display: flex; flex-direction: column; justify-content: center; gap: 24px; }
+  .brand { display: flex; align-items: center; gap: 12px; font: 500 20px/1 "Geist Mono", monospace; color: var(--text-2); }
+  .brand svg { width: 36px; height: 36px; }
+  h1 { font-size: 58px; line-height: 1.04; font-weight: 500; letter-spacing: -0.025em; }
+  .lede { font-size: 22px; line-height: 1.4; color: var(--text-2); }
+  .formats { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .formats span { font: 500 16px/1 "Geist Mono", monospace; color: var(--text-2); border: 1px solid var(--hairline-strong); border-radius: 8px; padding: 8px 12px; }
+
+  .window { position: absolute; left: 532px; top: 56px; right: 0; bottom: -24px; background: var(--surface); border: 1px solid var(--hairline-strong); border-right: 0; border-radius: 16px 0 0 0; overflow: hidden; display: grid; grid-template-columns: 216px 1fr; grid-template-rows: 44px 1fr; box-shadow: 0 24px 64px rgba(0,0,0,.5); }
+  .bar { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; padding: 0 16px; border-bottom: 1px solid var(--hairline); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--raised); }
+  .bar .link { margin-left: auto; margin-right: 8px; font: 500 13px/1 Geist, sans-serif; background: var(--text); color: var(--bg); padding: 7px 12px; border-radius: 8px; }
+  .bar .url { margin-left: 16px; font: 13px/1 "Geist Mono", monospace; color: var(--muted); }
+  .code { background: var(--sunken); border-right: 1px solid var(--hairline); padding: 16px 0 0 16px; font: 13px/21px "Geist Mono", monospace; color: var(--punct); white-space: pre; overflow: hidden; }
+  .k { color: var(--key); } .s { color: var(--str); } .n { color: var(--num); }
+  .preview { background: var(--dc-bg); padding: 24px 0 0 20px; overflow: hidden; }
+
+  /* Discord message, Components V2 */
+  .msg { display: grid; grid-template-columns: 40px 1fr; column-gap: 14px; font-family: Geist, sans-serif; color: var(--dc-text); width: 404px; }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; }
+  .who { display: flex; align-items: center; gap: 6px; font-size: 15px; margin-bottom: 6px; }
+  .who b { color: var(--dc-head); font-weight: 500; }
+  .tag { background: #5865f2; color: #fff; font-size: 10px; font-weight: 600; padding: 2px 5px; border-radius: 4px; }
+  .who time { color: var(--dc-muted); font-size: 12px; margin-left: 2px; }
+  .container { background: var(--dc-container); border: 1px solid rgba(255,255,255,.04); border-radius: 8px; padding: 16px; position: relative; overflow: hidden; }
+  .container::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--accent); }
+  .section { display: grid; grid-template-columns: 1fr 84px; gap: 12px; }
+  .h2 { font-size: 20px; font-weight: 600; color: var(--dc-head); margin-bottom: 6px; line-height: 1.2; }
+  .p { font-size: 14.5px; line-height: 1.4; }
+  .p code { font: 13px "Geist Mono", monospace; background: #1e1f22; border-radius: 4px; padding: 1px 4px; }
+  .thumb { width: 84px; height: 84px; border-radius: 8px; object-fit: cover; }
+  .sep { height: 1px; background: rgba(255,255,255,.08); margin: 14px 0; }
+  .gallery { display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: 104px; gap: 4px; margin: 0 0 14px; }
+  .gallery img { display: block; min-width: 0; width: 100%; height: 104px; object-fit: cover; border-radius: 6px; }
+  .gallery img:first-child { border-radius: 6px 2px 2px 6px; } .gallery img:last-child { border-radius: 2px 6px 6px 2px; }
+  .row { display: flex; gap: 8px; }
+  .btn { font-size: 14px; font-weight: 500; color: #fff; height: 32px; padding: 0 14px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; }
+  .primary { background: #5865f2; } .secondary { background: #4e5058; } .success { background: #248046; }
+  .select { margin-top: 8px; height: 40px; border-radius: 8px; background: #1e1f22; border: 1px solid #3f4147; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; font-size: 14px; color: var(--dc-muted); }
+</style>
+</head>
+<body>
+  <div class="copy">
+    <div class="brand">
+      <svg viewBox="0 0 20 20"><rect width="20" height="20" rx="5" fill="#232325"/><rect x="5" y="5.5" width="10" height="2" rx="1" fill="#ededed"/><rect x="5" y="9" width="6" height="2" rx="1" fill="#ededed" opacity=".55"/><rect x="5" y="12.5" width="4" height="2.5" rx="1.25" fill="#5ec4b0"/></svg>
+      discord.cp20.dev
+    </div>
+    <h1>Message Preview for Discord</h1>
+    <p class="lede">Write the message JSON, see it drawn like the Discord client, share it as a link</p>
+    <div class="formats"><span>content</span><span>embeds</span><span>Components V2</span></div>
+  </div>
+
+  <div class="window">
+    <div class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span class="url">discord.cp20.dev/#p3=…</span><span class="link">Copy link</span></div>
+<div class="code">{
+  <span class="k">"flags"</span>: <span class="n">32768</span>,
+  <span class="k">"components"</span>: [{
+    <span class="k">"type"</span>: <span class="n">17</span>,
+    <span class="k">"accent_color"</span>: <span class="n">6210736</span>,
+    <span class="k">"components"</span>: [
+      { <span class="k">"type"</span>: <span class="n">9</span>,
+        <span class="k">"components"</span>: [{
+          <span class="k">"type"</span>: <span class="n">10</span>,
+          <span class="k">"content"</span>: <span class="s">"## Trip…"</span>
+        }],
+        <span class="k">"accessory"</span>: {
+          <span class="k">"type"</span>: <span class="n">11</span>,
+          <span class="k">"media"</span>: { … }
+        } },
+      { <span class="k">"type"</span>: <span class="n">14</span> },
+      { <span class="k">"type"</span>: <span class="n">12</span>,
+        <span class="k">"items"</span>: [ … ] },
+      { <span class="k">"type"</span>: <span class="n">1</span>,
+        <span class="k">"components"</span>: [
+          { <span class="k">"type"</span>: <span class="n">2</span>,
+            <span class="k">"style"</span>: <span class="n">1</span>,</div>
+    <div class="preview">
+      <div class="msg">
+        <img class="avatar" src="../../public/samples/avatar.png" />
+        <div>
+          <div class="who"><b>Album Bot</b><span class="tag">APP</span><time>Today at 18:42</time></div>
+          <div class="container">
+            <div class="section">
+              <div>
+                <div class="h2">Trip photos are up</div>
+                <div class="p">24 new photos from the lake weekend, sorted into <code>#trips</code></div>
+              </div>
+              <img class="thumb" src="../../public/samples/forest.png" />
+            </div>
+            <div class="sep"></div>
+            <div class="gallery"><img src="../../public/samples/lake.png" /><img src="../../public/samples/ridge.png" /></div>
+            <div class="row"><span class="btn primary">Open album</span><span class="btn secondary">Download</span><span class="btn success">Like</span></div>
+            <div class="select">Choose a day<svg width="16" height="16" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="#b5bac1" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
