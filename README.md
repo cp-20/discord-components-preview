@@ -95,6 +95,10 @@ pnpm deploy           # vite build && wrangler deploy
 
 The custom domain is created on first deploy (the `cp20.dev` zone must be in the same Cloudflare account).
 
+Production is also connected to Workers Builds: every push to `main` runs `pnpm run build` and `npx wrangler deploy` on Cloudflare. GitHub Actions only runs tests and the build.
+
+`public/_headers` sets a strict CSP (`script-src 'self'`). It also blocks the Cloudflare Web Analytics beacon if the zone injects it, which keeps share URLs out of third-party scripts.
+
 Not affiliated with Discord. The preview imitates the client's look so you can check a layout before sending it.
 
 ## License
