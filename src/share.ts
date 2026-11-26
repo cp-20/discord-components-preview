@@ -1,13 +1,16 @@
-import { deflateSync, inflateSync, unzlibSync, strToU8, strFromU8 } from "fflate";
+import { deflateSync, inflateSync, strToU8, strFromU8 } from "fflate";
+import { DICTIONARY } from "./dictionary";
 
 /**
- * URL fragment format
- *   #p=<base64url( deflate-raw( UTF-8 JSON ) )>
- * Fallbacks accepted when reading:
- *   - zlib-wrapped deflate (e.g. Python `zlib.compress`)
- *   - plain base64 / base64url of the UTF-8 JSON, no compression
+ * Share link format (the only one this site reads)
+ *   https://discord.cp20.dev/#p2=<base64url( deflate-raw( minified UTF-8 JSON, dictionary = DICTIONARY ) )>
+ * - deflate-raw: RFC 1951 stream, no zlib/gzip header, with DICTIONARY as the preset dictionary
+ * - base64url: RFC 4648 §5 alphabet, no padding
+ * - JSON is minified before compressing (text that isn't valid JSON is compressed as-is)
  * The fragment is never sent to the server.
  */
+export const PARAM = "p2";
+const dictionary = strToU8(DICTIONARY);
 
 export function toBase64Url(bytes: Uint8Array): string {
   let bin = "";
@@ -18,7 +21,7 @@ export function toBase64Url(bytes: Uint8Array): string {
 }
 
 export function fromBase64Url(text: string): Uint8Array {
-  let s = text.trim().replace(/-/g, "+").replace(/_/g, "/").replace(/\s+/g, "");
+  let s = text.replace(/-/g, "+").replace(/_/g, "/");
   while (s.length % 4) s += "=";
   const bin = atob(s);
   const out = new Uint8Array(bin.length);
@@ -26,59 +29,45 @@ export function fromBase64Url(text: string): Uint8Array {
   return out;
 }
 
-export function encodePayload(json: string): string {
-  return toBase64Url(deflateSync(strToU8(json), { level: 9 }));
+/** Minified JSON when the text parses, otherwise the text unchanged (drafts with syntax errors still share) */
+export function minify(text: string): string {
+  try {
+    return JSON.stringify(JSON.parse(text));
+  } catch {
+    return text;
+  }
 }
 
-const looksLikeJson = (s: string) => /^\s*[[{]/.test(s);
+export function encodePayload(text: string): string {
+  return toBase64Url(deflateSync(strToU8(minify(text)), { level: 9, dictionary }));
+}
 
-/** Decodes a `p` value. Returns the JSON text, or null when nothing readable is found. */
+/** Decodes a `p2` value into editor text (pretty-printed when it is JSON). Null when it can't be read. */
 export function decodePayload(value: string): string | null {
-  let raw = value;
+  if (!/^[A-Za-z0-9_-]+$/.test(value)) return null;
+  let text: string;
   try {
-    raw = decodeURIComponent(value);
-  } catch {
-    /* keep as-is */
-  }
-  if (looksLikeJson(raw)) return raw; // someone pasted raw JSON into the fragment
-  let bytes: Uint8Array;
-  try {
-    bytes = fromBase64Url(raw);
+    text = strFromU8(inflateSync(fromBase64Url(value), { dictionary }));
   } catch {
     return null;
   }
-  const attempts: Array<() => Uint8Array> = [
-    () => inflateSync(bytes),
-    () => unzlibSync(bytes),
-    () => bytes,
-  ];
-  for (const attempt of attempts) {
-    try {
-      const text = strFromU8(attempt());
-      if (looksLikeJson(text)) {
-        JSON.parse(text); // must at least be valid JSON to accept a fallback guess
-        return text;
-      }
-    } catch {
-      /* try next */
-    }
-  }
-  // Last resort: decoded bytes look like JSON but don't parse; still hand them to the editor
   try {
-    const text = strFromU8(bytes);
-    if (looksLikeJson(text)) return text;
+    return JSON.stringify(JSON.parse(text), null, 2);
   } catch {
-    /* ignore */
+    return text;
   }
-  return null;
 }
 
+/** Reads `p2=` from a location hash such as "#p2=…" */
 export function readFragment(hash: string): string | null {
-  // Parsed by hand: URLSearchParams would turn "+" from plain base64 into spaces
-  const m = /(?:^|&)p=([^&]*)/.exec(hash.replace(/^#/, ""));
+  const m = /(?:^|&)p2=([^&]*)/.exec(hash.replace(/^#/, ""));
   return m && m[1] ? decodePayload(m[1]) : null;
 }
 
-export function shareUrl(base: string, json: string): string {
-  return `${base.split("#")[0]}#p=${encodePayload(json)}`;
+export function shareHash(text: string): string {
+  return `#${PARAM}=${encodePayload(text)}`;
+}
+
+export function shareUrl(base: string, text: string): string {
+  return base.split("#")[0] + shareHash(text);
 }

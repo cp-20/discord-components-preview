@@ -1,31 +1,42 @@
 // Visual check: renders each preset in both themes and on a phone, saving PNGs.
 // Usage: node scripts/shots.mjs <baseUrl> <outDir>
 import { chromium } from "playwright";
-import { deflateSync, strToU8 } from "fflate";
+import zlib from "node:zlib";
 import { readFileSync, mkdirSync } from "node:fs";
 
 const [base = "http://localhost:4789", out = "shots"] = process.argv.slice(2);
 mkdirSync(out, { recursive: true });
-const enc = (s) => Buffer.from(deflateSync(strToU8(s), { level: 9 })).toString("base64url");
+// Links are built the way /llms.txt tells agents to, with the dictionary the site serves
+const dictionary = Buffer.from(await (await fetch(base + "/p2-dictionary.txt")).arrayBuffer());
+const enc = (s) => {
+  let text = s;
+  try {
+    text = JSON.stringify(JSON.parse(s));
+  } catch {}
+  return zlib.deflateRawSync(Buffer.from(text), { level: 9, dictionary }).toString("base64url");
+};
 const extra = JSON.parse(readFileSync(new URL("./shot-cases.json", import.meta.url), "utf8"));
 
 const browser = await chromium.launch();
 const cases = [
   { name: "default-dark", hash: "", theme: "dark" },
   { name: "default-light", hash: "", theme: "light" },
-  ...Object.entries(extra).map(([name, payload]) => ({ name, hash: "#p=" + enc(typeof payload === "string" ? payload : JSON.stringify(payload, null, 2)), theme: "dark" })),
+  { name: "view-gallery-dark", path: "/gallery", hash: "", theme: "dark" },
+  { name: "view-gallery-light", path: "/gallery", hash: "", theme: "light" },
+  { name: "view-docs-dark", path: "/docs", hash: "", theme: "dark" },
+  ...Object.entries(extra).map(([name, payload]) => ({ name, hash: "#p2=" + enc(typeof payload === "string" ? payload : JSON.stringify(payload, null, 2)), theme: "dark" })),
 ];
 for (const c of cases) {
-  for (const vp of [{ tag: "desk", width: 1440, height: 900 }, ...(c.name.startsWith("default") ? [{ tag: "phone", width: 390, height: 844, mobile: true }] : [])]) {
+  for (const vp of [{ tag: "desk", width: 1440, height: 900 }, ...(/^(default|view-)/.test(c.name) ? [{ tag: "phone", width: 390, height: 844, mobile: true }] : [])]) {
     const ctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, deviceScaleFactor: 1, isMobile: !!vp.mobile, hasTouch: !!vp.mobile });
     await ctx.addInitScript((t) => localStorage.setItem("theme", t), c.theme);
     const page = await ctx.newPage();
     page.on("pageerror", (e) => console.log("pageerror", c.name, e.message));
     page.on("console", (m) => m.type() === "error" && console.log("console", c.name, m.text().slice(0, 160)));
-    await page.goto(base + "/" + c.hash);
+    await page.goto(base + (c.path ?? "/") + c.hash);
     await page.waitForTimeout(600);
-    await page.screenshot({ path: `${out}/${c.name}-${vp.tag}.png` });
-    if (vp.mobile) {
+    await page.screenshot({ path: `${out}/${c.name}-${vp.tag}.png`, fullPage: !!c.path && !vp.mobile });
+    if (vp.mobile && !c.path) {
       await page.getByRole("tab", { name: "Editor" }).click();
       await page.waitForTimeout(200);
       await page.screenshot({ path: `${out}/${c.name}-${vp.tag}-editor.png` });

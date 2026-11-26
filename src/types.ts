@@ -27,15 +27,49 @@ export interface Component {
   [key: string]: any;
 }
 
+export interface EmbedMedia {
+  url?: string;
+  width?: number;
+  height?: number;
+}
+
+export interface EmbedField {
+  name: string;
+  value: string;
+  inline?: boolean;
+}
+
+export interface Embed {
+  title?: string;
+  type?: string;
+  description?: string;
+  url?: string;
+  timestamp?: string;
+  color?: number | null;
+  footer?: { text: string; icon_url?: string };
+  image?: EmbedMedia;
+  thumbnail?: EmbedMedia;
+  author?: { name: string; url?: string; icon_url?: string };
+  fields?: EmbedField[];
+}
+
 export interface Message {
   content?: string;
+  embeds?: Embed[];
   flags?: number;
   username?: string;
   avatar_url?: string;
   components: Component[];
 }
 
-export const IS_COMPONENTS_V2 = 1 << 15;
+export const MessageFlags = {
+  SuppressEmbeds: 1 << 2,
+  Ephemeral: 1 << 6,
+  SuppressNotifications: 1 << 12,
+  IsComponentsV2: 1 << 15,
+} as const;
+
+export const IS_COMPONENTS_V2 = MessageFlags.IsComponentsV2;
 
 export const ComponentType = {
   ActionRow: 1,

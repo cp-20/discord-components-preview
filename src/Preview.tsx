@@ -1,7 +1,9 @@
 import { useState } from "preact/hooks";
 import type { ComponentChildren } from "preact";
-import { formatTimestamp, parseMarkdown, type Block, type Inline } from "./markdown";
-import { ComponentType as T, componentNames, type Component, type Message, type Path } from "./types";
+import { formatTimestamp, isJumbo, parseInline, parseMarkdown, type Block, type Inline } from "./markdown";
+import { ComponentType as T, MessageFlags, componentNames, type Component, type Embed, type Message, type Path } from "./types";
+import { embedView } from "./embed";
+import { emojiCode, emojiFromObject, emojiUrl, type CustomEmoji } from "./emoji";
 import { Icon } from "./icons";
 import { SITE } from "./presets";
 
@@ -25,8 +27,13 @@ export function Preview({ message, rootPath: root, inspect, onInspect, onInterac
   const now = new Date();
   const time = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(now);
   const ctx: Ctx = { inspect, onInspect, onInteract };
+  const flags = typeof message.flags === "number" ? message.flags : 0;
+  const v2 = (flags & MessageFlags.IsComponentsV2) !== 0;
+  // With IS_COMPONENTS_V2 Discord only accepts components; the validator warns about the rest
+  const content = !v2 && typeof message.content === "string" && message.content.trim() ? message.content : "";
+  const embeds = !v2 && !(flags & MessageFlags.SuppressEmbeds) && Array.isArray(message.embeds) ? message.embeds : [];
   return (
-    <div class="dc-msg">
+    <div class={`dc-msg${flags & MessageFlags.Ephemeral ? " is-ephemeral" : ""}`}>
       <img class="dc-avatar" src={mediaSrc(message.avatar_url || `${SITE}/samples/avatar.png`)} alt="" width={40} height={40} />
       <div class="dc-body">
         <div class="dc-header">
@@ -34,7 +41,29 @@ export function Preview({ message, rootPath: root, inspect, onInspect, onInterac
           <span class="dc-tag">APP</span>
           <time class="dc-time">Today at {time}</time>
         </div>
-        <div class="dc-stack">{message.components.map((c, i) => renderComponent(c, [...root, i], ctx))}</div>
+        {content && (
+          <Pick ctx={ctx} path={["content"]} label="content">
+            <Markdown source={content} jumbo />
+          </Pick>
+        )}
+        {embeds.length > 0 && (
+          <div class="dc-embeds">
+            {embeds.map((e, i) => (
+              <Pick key={i} ctx={ctx} path={["embeds", i]} label={`Embed · ${i}`}>
+                <EmbedCard e={e} />
+              </Pick>
+            ))}
+          </div>
+        )}
+        {message.components.length > 0 && (
+          <div class="dc-stack">{message.components.map((c, i) => renderComponent(c, [...root, i], ctx))}</div>
+        )}
+        {flags & MessageFlags.Ephemeral ? (
+          <div class="dc-ephemeral">
+            <Icon name="eye" size={16} />
+            Only you can see this · <span class="dc-ephemeral-link">Dismiss message</span>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -47,12 +76,12 @@ interface Ctx {
 }
 
 /** Wraps a component so it can be picked in inspect mode */
-function Pick({ ctx, path, type, children, class: cls }: { ctx: Ctx; path: Path; type: number; children: ComponentChildren; class?: string }) {
+function Pick({ ctx, path, label, children }: { ctx: Ctx; path: Path; label: string; children: ComponentChildren }) {
   if (!ctx.inspect) return <>{children}</>;
   return (
     <div
-      class={`dc-pick ${cls ?? ""}`}
-      data-label={`${componentNames[type] ?? "Unknown"} · ${type}`}
+      class="dc-pick"
+      data-label={label}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -107,7 +136,7 @@ function renderComponent(c: Component, path: Path, ctx: Ctx): ComponentChildren 
       case T.RoleSelect:
       case T.MentionableSelect:
       case T.ChannelSelect:
-        return <Select c={c} />;
+        return <Select c={c} ctx={ctx} />;
       case T.File:
         return <FileCard url={c.file.url} spoiler={c.spoiler} />;
       default:
@@ -115,7 +144,7 @@ function renderComponent(c: Component, path: Path, ctx: Ctx): ComponentChildren 
     }
   })();
   return (
-    <Pick key={key} ctx={ctx} path={path} type={c.type}>
+    <Pick key={key} ctx={ctx} path={path} label={`${componentNames[c.type] ?? "Unknown"} · ${c.type}`}>
       {body}
     </Pick>
   );
@@ -124,7 +153,18 @@ function renderComponent(c: Component, path: Path, ctx: Ctx): ComponentChildren 
 // ---------- Text Display ----------
 
 export function TextDisplay({ content }: { content: string }) {
-  return <div class="dc-md">{parseMarkdown(content).map((b, i) => renderBlock(b, i))}</div>;
+  return <Markdown source={content} />;
+}
+
+/** Discord markdown. `jumbo` enlarges emoji-only text like message content does in the client */
+export function Markdown({ source, jumbo, class: cls }: { source: string; jumbo?: boolean; class?: string }) {
+  const blocks = parseMarkdown(source);
+  return <div class={`dc-md${jumbo && isJumbo(blocks) ? " is-jumbo" : ""}${cls ? " " + cls : ""}`}>{blocks.map((b, i) => renderBlock(b, i))}</div>;
+}
+
+/** Inline-only markdown, for embed titles and field names */
+function InlineMd({ source }: { source: string }) {
+  return <>{renderInline(parseInline(source))}</>;
 }
 
 function renderBlock(b: Block, key: number): ComponentChildren {
@@ -199,16 +239,7 @@ function renderInline(nodes: Inline[]): ComponentChildren {
         );
       }
       case "emoji":
-        return (
-          <img
-            key={i}
-            class="dc-emoji"
-            src={`https://cdn.discordapp.com/emojis/${n.id}.${n.animated ? "gif" : "webp"}?size=48`}
-            alt={`:${n.name}:`}
-            title={`:${n.name}:`}
-            draggable={false}
-          />
-        );
+        return <EmojiImg key={i} emoji={n} class="dc-emoji" />;
       case "time":
         return (
           <span key={i} class="dc-time-inline" title={new Date(n.ts * 1000).toString()}>
@@ -225,6 +256,95 @@ function Spoiler({ children }: { children: ComponentChildren }) {
     <span class={`dc-spoiler${open ? " open" : ""}`} onClick={() => setOpen(true)} role="button" tabIndex={0}>
       <span>{children}</span>
     </span>
+  );
+}
+
+// ---------- custom emoji ----------
+
+/** CDN image; when it fails (unknown id, deleted emoji) the raw code is shown as a chip instead */
+function EmojiImg({ emoji, class: cls }: { emoji: CustomEmoji; class: string }) {
+  const [failed, setFailed] = useState<string | null>(null);
+  const code = emojiCode(emoji);
+  if (failed === code) {
+    return (
+      <span class="dc-emoji-chip" title={`Couldn't load ${code} from the Discord CDN`}>
+        {code}
+      </span>
+    );
+  }
+  return <img class={cls} src={emojiUrl(emoji)} alt={`:${emoji.name}:`} title={`:${emoji.name}:`} draggable={false} onError={() => setFailed(code)} />;
+}
+
+// ---------- embeds ----------
+
+function MaybeLink({ href, class: cls, children }: { href?: string; class: string; children: ComponentChildren }) {
+  return href && /^https?:\/\//.test(href) ? (
+    <a class={`${cls} is-link`} href={href} target="_blank" rel="noopener noreferrer">
+      {children}
+    </a>
+  ) : (
+    <span class={cls}>{children}</span>
+  );
+}
+
+function EmbedImage({ url, class: cls }: { url: string; class: string }) {
+  const [failed, setFailed] = useState<string | null>(null);
+  if (failed === url || !/^(https?:|\/)/.test(url)) {
+    return (
+      <div class={`${cls} dc-media-broken`} title={url}>
+        <Icon name="image" size={20} />
+        <span>{url.startsWith("attachment://") ? url.slice(13) : "Can't load"}</span>
+      </div>
+    );
+  }
+  return <img class={cls} src={mediaSrc(url)} alt="" loading="lazy" onError={() => setFailed(url)} />;
+}
+
+export function EmbedCard({ e }: { e: Embed }) {
+  const v = embedView(e);
+  return (
+    <article class={`dc-embed${v.thumbnail ? " has-thumb" : ""}`} style={v.color ? { "--embed-color": v.color } : undefined}>
+      <div class="dc-embed-grid">
+        {v.author && (
+          <div class="dc-embed-author">
+            {v.author.iconUrl && <img class="dc-embed-author-icon" src={mediaSrc(v.author.iconUrl)} alt="" />}
+            <MaybeLink href={v.author.url} class="dc-embed-author-name">
+              {v.author.name}
+            </MaybeLink>
+          </div>
+        )}
+        {v.title && (
+          <MaybeLink href={v.url} class="dc-embed-title">
+            <InlineMd source={v.title} />
+          </MaybeLink>
+        )}
+        {v.description && <Markdown source={v.description} class="dc-embed-desc" />}
+        {v.fieldRows.length > 0 && (
+          <div class="dc-embed-fields">
+            {v.fieldRows.flat().map((f) => (
+              <div key={f.index} class="dc-embed-field" style={{ gridColumn: f.column }}>
+                <div class="dc-embed-field-name">
+                  <InlineMd source={f.name} />
+                </div>
+                <Markdown source={f.value} class="dc-embed-field-value" />
+              </div>
+            ))}
+          </div>
+        )}
+        {v.image && <EmbedImage url={v.image} class="dc-embed-image" />}
+        {v.thumbnail && <EmbedImage url={v.thumbnail} class="dc-embed-thumb" />}
+        {v.footer && (
+          <div class="dc-embed-footer">
+            {v.footer.iconUrl && <img class="dc-embed-footer-icon" src={mediaSrc(v.footer.iconUrl)} alt="" />}
+            <span>
+              {v.footer.text}
+              {v.footer.text && v.footer.time && <span class="dc-embed-dot">•</span>}
+              {v.footer.time}
+            </span>
+          </div>
+        )}
+      </div>
+    </article>
   );
 }
 
@@ -278,17 +398,11 @@ function FileCard({ url, spoiler }: { url: string; spoiler?: boolean }) {
 
 const styleNames: Record<number, string> = { 1: "primary", 2: "secondary", 3: "success", 4: "danger", 5: "link", 6: "premium" };
 
-function ButtonEmoji({ emoji }: { emoji: Component["emoji"] }) {
-  if (!emoji) return null;
-  if (emoji.id)
-    return (
-      <img
-        class="dc-btn-emoji"
-        src={`https://cdn.discordapp.com/emojis/${emoji.id}.${emoji.animated ? "gif" : "webp"}?size=44`}
-        alt={emoji.name ?? ""}
-      />
-    );
-  return <span class="dc-btn-emoji">{emoji.name}</span>;
+function ButtonEmoji({ emoji, class: cls = "dc-btn-emoji" }: { emoji: unknown; class?: string }) {
+  const e = emojiFromObject(emoji);
+  if (!e) return null;
+  if ("unicode" in e) return <span class={cls}>{e.unicode}</span>;
+  return <EmojiImg emoji={e} class={cls} />;
 }
 
 function Button({ c, ctx }: { c: Component; ctx: Ctx }) {
@@ -328,11 +442,66 @@ const selectPlaceholder: Record<number, string> = {
   8: "Select a channel",
 };
 
-function Select({ c }: { c: Component }) {
+interface SelectOption {
+  label?: string;
+  value?: string;
+  description?: string;
+  emoji?: unknown;
+  default?: boolean;
+}
+
+function Select({ c, ctx }: { c: Component; ctx: Ctx }) {
+  const [open, setOpen] = useState(false);
+  const options: SelectOption[] = c.type === T.StringSelect && Array.isArray(c.options) ? c.options.filter((o: unknown) => o && typeof o === "object") : [];
+  const chosen = options.filter((o) => o.default);
+  const canOpen = !c.disabled && options.length > 0;
   return (
-    <div class={`dc-select${c.disabled ? " disabled" : ""}`}>
-      <span>{c.placeholder ?? selectPlaceholder[c.type]}</span>
-      <Icon name="chevronSelect" size={20} />
+    <div class={`dc-select-wrap${open ? " open" : ""}`}>
+      <button
+        type="button"
+        class={`dc-select${c.disabled ? " disabled" : ""}`}
+        aria-expanded={canOpen ? open : undefined}
+        disabled={c.disabled}
+        onClick={() => (canOpen ? setOpen(!open) : ctx.onInteract(`custom_id ${c.custom_id ?? "—"}`))}
+      >
+        {chosen.length ? (
+          <span class="dc-select-value">
+            {chosen.map((o, i) => (
+              <span key={i} class="dc-select-chosen">
+                <ButtonEmoji emoji={o.emoji} class="dc-opt-emoji" />
+                {o.label}
+              </span>
+            ))}
+          </span>
+        ) : (
+          <span class="dc-select-placeholder">{c.placeholder ?? selectPlaceholder[c.type]}</span>
+        )}
+        <Icon name="chevronSelect" size={20} class="dc-select-chev" />
+      </button>
+      {open && (
+        <div class="dc-select-menu" role="listbox">
+          {options.map((o, i) => (
+            <button
+              key={i}
+              type="button"
+              role="option"
+              aria-selected={!!o.default}
+              class="dc-opt"
+              onClick={() => {
+                setOpen(false);
+                ctx.onInteract(`custom_id ${c.custom_id ?? "—"} · value ${o.value ?? "—"}`);
+              }}
+            >
+              <ButtonEmoji emoji={o.emoji} class="dc-opt-emoji" />
+              <span class="dc-opt-text">
+                <span class="dc-opt-label">{o.label}</span>
+                {o.description && <span class="dc-opt-desc">{o.description}</span>}
+              </span>
+              {o.default && <Icon name="check" size={16} class="dc-opt-check" />}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

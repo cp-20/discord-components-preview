@@ -3,17 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Components V2 Preview</title>
-    <meta name="description" content="Write a Discord Components V2 payload and see it rendered like the Discord client. Share it with a link; the payload stays in the URL fragment." />
-    <meta property="og:title" content="Components V2 Preview" />
-    <meta property="og:description" content="Edit Discord Components V2 JSON with a live, client-like preview and shareable links." />
+    <title>Message Preview for Discord</title>
+    <meta name="description" content="Write a Discord message payload (content, embeds, components, Components V2) and see it rendered like the Discord client. Share it with a link; the payload stays in the URL fragment." />
+    <meta property="og:title" content="Message Preview for Discord" />
+    <meta property="og:description" content="Edit Discord message JSON: content, embeds and Components V2, with a live client-like preview and shareable links." />
     <meta property="og:url" content="https://discord.cp20.dev/" />
     <meta name="theme-color" content="#0f0f10" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="alternate" type="text/markdown" href="/llms.txt" title="Docs for AI agents" />
     <script src="/theme.js"></script>
   </head>
   <body>
     <div id="app"></div>
+    <!-- Read by agents and crawlers that don't run JavaScript; removed once the app starts -->
+    <div id="static-intro">
+      <h1>Message Preview for Discord</h1>
+      <p>Renders a Discord message payload (content, embeds, components, Components V2) like the Discord client and shares it as a link: https://discord.cp20.dev/#p2=&lt;base64url(deflate-raw(JSON, dictionary))&gt;.</p>
+      <p>AI agents: the full link algorithm, the compression dictionary, every supported format and ready example links are in <a href="/llms.txt">/llms.txt</a>. Human docs: <a href="/docs">/docs</a>. Examples: <a href="/gallery">/gallery</a>.</p>
+    </div>
     <noscript>This tool runs in your browser and needs JavaScript.</noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>

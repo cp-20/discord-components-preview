@@ -1,5 +1,6 @@
 import { parseTree, findNodeAtLocation, printParseErrorCode, type Node, type ParseError } from "jsonc-parser";
-import { ComponentType as T, IS_COMPONENTS_V2, componentNames, type Component, type Issue, type Message, type Path } from "./types";
+import { ComponentType as T, IS_COMPONENTS_V2, componentNames, type Component, type Embed, type Issue, type Message, type Path } from "./types";
+import { embedTextLength } from "./embed";
 
 export type Analysis =
   | { kind: "syntax"; errors: Issue[] }
@@ -7,8 +8,16 @@ export type Analysis =
   | { kind: "ok"; message: Message; rootPath: Path; warnings: Issue[]; stats: Stats };
 
 export interface Stats {
+  /** "v2" when the message uses Components V2, "classic" for content / embeds / action rows */
+  mode: "v2" | "classic";
   components: number;
+  /** Text Display characters (V2 limit 4000) */
   textLength: number;
+  /** content characters (limit 2000) */
+  contentLength: number;
+  /** characters across embeds (limit 6000) */
+  embedLength: number;
+  embeds: number;
 }
 
 const SELECTS = new Set<number>([T.StringSelect, T.UserSelect, T.RoleSelect, T.MentionableSelect, T.ChannelSelect]);
@@ -76,7 +85,22 @@ export function analyze(text: string): Analysis {
   if (v.errors.length || !message) {
     return { kind: "structure", errors: locate(v.errors), warnings: locate(v.warnings) };
   }
-  return { kind: "ok", message, rootPath: Array.isArray(value) ? [] : ["components"], warnings: locate(v.warnings), stats: { components: v.count, textLength: v.textLength } };
+  return { kind: "ok", message, rootPath: Array.isArray(value) ? [] : ["components"], warnings: locate(v.warnings), stats: stats(message, v) };
+}
+
+const EMBED_KEYS = ["title", "description", "fields", "author", "footer", "image", "thumbnail", "color", "timestamp"];
+const EMBED_CONTENT_KEYS = ["title", "description", "fields", "author", "footer", "image", "thumbnail"];
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}(T[\d:.]+(Z|[+-]\d{2}:?\d{2})?)?$/;
+const isHttp = (x: unknown) => typeof x === "string" && /^https?:\/\//.test(x);
+function stats(m: Message, v: Validator): Stats {
+  return {
+    mode: v.v2 ? "v2" : "classic",
+    components: v.count,
+    textLength: v.textLength,
+    contentLength: typeof m.content === "string" ? m.content.length : 0,
+    embedLength: v.embedLength,
+    embeds: Array.isArray(m.embeds) ? m.embeds.length : 0,
+  };
 }
 
 const isObj = (x: unknown): x is Record<string, any> => typeof x === "object" && x !== null && !Array.isArray(x);
@@ -88,6 +112,9 @@ class Validator {
   warnings: Issue[] = [];
   count = 0;
   textLength = 0;
+  embedLength = 0;
+  /** Components V2 message (flag set, or V2 components used) */
+  v2 = false;
 
   constructor(
     private tree: Node,
@@ -119,34 +146,128 @@ class Validator {
     let message: Message;
     if (Array.isArray(value)) {
       message = { components: value as Component[] };
+      this.v2 = value.some((c) => isObj(c) && c.type !== T.ActionRow);
       this.components(value, [], "top");
     } else if (isObj(value)) {
-      if (!("components" in value)) {
+      const hasContent = "content" in value;
+      const hasEmbeds = "embeds" in value;
+      const hasComponents = "components" in value;
+      if (isInt(value.type) && !hasEmbeds && !hasComponents) {
+        this.error([], 'This looks like a single component. Wrap it in a message: { "flags": 32768, "components": [ ... ] }');
+        return null;
+      }
+      if (!hasContent && !hasEmbeds && !hasComponents) {
         if ("type" in value) {
-          this.error([], "This looks like a single component. Wrap it in a message: { \"flags\": 32768, \"components\": [ ... ] }");
+          this.error([], 'This looks like a single component. Wrap it in a message: { "flags": 32768, "components": [ ... ] }');
+        } else if (EMBED_KEYS.some((k) => k in value)) {
+          this.error([], 'This looks like a single embed. Wrap it in a message: { "embeds": [ ... ] }');
         } else {
-          this.error([], "Missing \"components\". Expected { \"flags\": 32768, \"components\": [ ... ] }");
+          this.error([], 'A message needs "content", "embeds" or "components"');
         }
         return null;
       }
-      if (!Array.isArray(value.components)) {
-        this.error(["components"], "\"components\" must be an array");
+      if (hasContent && typeof value.content !== "string") {
+        this.error(["content"], '"content" must be a string');
         return null;
       }
-      message = value as Message;
-      if (!isInt(value.flags) || (value.flags & IS_COMPONENTS_V2) === 0) {
+      if (hasEmbeds && !Array.isArray(value.embeds)) {
+        this.error(["embeds"], '"embeds" must be an array of embed objects');
+        return null;
+      }
+      if (hasComponents && !Array.isArray(value.components)) {
+        this.error(["components"], '"components" must be an array');
+        return null;
+      }
+      const components: unknown[] = value.components ?? [];
+      const flags = isInt(value.flags) ? value.flags : 0;
+      const flagged = (flags & IS_COMPONENTS_V2) !== 0;
+      const usesV2 = components.some((c) => isObj(c) && isInt(c.type) && c.type !== T.ActionRow);
+      this.v2 = flagged || usesV2;
+      const content = typeof value.content === "string" ? value.content : "";
+      const embeds: unknown[] = value.embeds ?? [];
+
+      if (usesV2 && !flagged) {
         this.warn(value.flags === undefined ? [] : ["flags"], "Set the IS_COMPONENTS_V2 flag (flags: 32768) or Discord will reject these components");
       }
-      if (value.content) this.warn(["content"], "\"content\" can't be used with IS_COMPONENTS_V2. Use a Text Display instead");
-      if (value.embeds?.length) this.warn(["embeds"], "\"embeds\" can't be used with IS_COMPONENTS_V2. Use a Container instead");
-      this.components(value.components, ["components"], "top");
+      if (this.v2) {
+        if (content) this.warn(["content"], '"content" can\'t be used with IS_COMPONENTS_V2 and isn\'t shown. Use a Text Display (type 10) instead');
+        if (embeds.length) this.warn(["embeds"], '"embeds" can\'t be used with IS_COMPONENTS_V2 and aren\'t shown. Use a Container (type 17) instead');
+      } else {
+        if (content.length > 2000) this.warn(["content"], `${content.length} characters of content. Discord allows at most 2000`);
+        this.embeds(embeds);
+        if (!content.trim() && embeds.length === 0 && components.length === 0) this.warn([], "Discord rejects a message with no content, embeds or components");
+      }
+      message = { ...(value as Message), components: components as Component[], embeds: embeds as Message["embeds"] };
+      if (hasComponents) this.components(components, ["components"], "top");
     } else {
       this.error([], "Expected a message object or an array of components");
       return null;
     }
-    if (this.count > 40) this.warn([], `${this.count} components in total. Discord allows at most 40, nested ones included`);
-    if (this.textLength > 4000) this.warn([], `${this.textLength} characters of text. Discord allows at most 4000 across all Text Displays`);
+    if (this.v2) {
+      if (this.count > 40) this.warn([], `${this.count} components in total. Discord allows at most 40, nested ones included`);
+      if (this.textLength > 4000) this.warn([], `${this.textLength} characters of text. Discord allows at most 4000 across all Text Displays`);
+    } else if (message.components.length > 5) {
+      this.warn(["components"], `${message.components.length} Action Rows. Discord allows at most 5 per message`);
+    }
     return message;
+  }
+
+  embeds(list: unknown[]) {
+    if (list.length > 10) this.warn(["embeds"], `${list.length} embeds. Discord allows at most 10 per message`);
+    list.forEach((e, i) => this.embed(e, ["embeds", i]));
+    if (this.embedLength > 6000) this.warn(["embeds"], `${this.embedLength} characters across embeds. Discord allows at most 6000 in total`);
+  }
+
+  embed(e: unknown, path: Path) {
+    if (!isObj(e)) {
+      this.warn(path, "Each embed must be an object");
+      return;
+    }
+    const limit = (key: string, max: number, p: Path = [...path, key], v: unknown = e[key]) => {
+      if (v === undefined) return;
+      if (typeof v !== "string") this.warn(p, `${p.slice(path.length).join(".")} must be a string`);
+      else if (v.length > max) this.warn(p, `${p.slice(path.length).join(".")} is ${v.length} characters. Discord allows at most ${max}`);
+    };
+    limit("title", 256);
+    limit("description", 4096);
+    if (e.url !== undefined && !isHttp(e.url)) this.warn([...path, "url"], "url must start with http:// or https://");
+    if (e.color !== undefined && e.color !== null && (!isInt(e.color) || e.color < 0 || e.color > 0xffffff)) {
+      this.warn([...path, "color"], "color is an integer from 0 to 16777215 (0xFFFFFF), e.g. 5793266 for #5865F2");
+    }
+    if (e.timestamp !== undefined && (typeof e.timestamp !== "string" || !ISO_DATE.test(e.timestamp) || Number.isNaN(Date.parse(e.timestamp)))) {
+      this.warn([...path, "timestamp"], 'timestamp is an ISO 8601 date such as "2026-11-27T13:15:00.000Z"');
+    }
+    if (e.author !== undefined) {
+      if (!isObj(e.author) || typeof e.author.name !== "string" || !e.author.name) this.warn([...path, "author"], 'author needs a "name"');
+      else limit("name", 256, [...path, "author", "name"], e.author.name);
+    }
+    if (e.footer !== undefined) {
+      if (!isObj(e.footer) || typeof e.footer.text !== "string" || !e.footer.text) this.warn([...path, "footer"], 'footer needs a "text"');
+      else limit("text", 2048, [...path, "footer", "text"], e.footer.text);
+    }
+    for (const key of ["image", "thumbnail"]) {
+      if (e[key] === undefined) continue;
+      if (!isObj(e[key]) || typeof e[key].url !== "string") this.warn([...path, key], `${key} needs { "url": "https://…" }`);
+      else if (!isHttp(e[key].url) && !e[key].url.startsWith("attachment://")) this.warn([...path, key, "url"], `${key}.url must be http(s):// or attachment://`);
+    }
+    if (e.fields !== undefined) {
+      if (!Array.isArray(e.fields)) this.warn([...path, "fields"], "fields must be an array");
+      else {
+        if (e.fields.length > 25) this.warn([...path, "fields"], `${e.fields.length} fields. Discord allows at most 25 per embed`);
+        e.fields.forEach((f: unknown, i: number) => {
+          const fp = [...path, "fields", i];
+          if (!isObj(f) || typeof f.name !== "string" || typeof f.value !== "string" || !f.name || !f.value) {
+            this.warn(fp, 'Each field needs a non-empty "name" and "value"');
+            return;
+          }
+          limit("name", 256, [...fp, "name"], f.name);
+          limit("value", 1024, [...fp, "value"], f.value);
+          if (f.inline !== undefined && typeof f.inline !== "boolean") this.warn([...fp, "inline"], "inline is true or false");
+        });
+      }
+    }
+    if (!EMBED_CONTENT_KEYS.some((k) => e[k] !== undefined)) this.warn(path, "Discord rejects an empty embed. Add a title, description, fields or an image");
+    this.embedLength += embedTextLength(e as Embed);
   }
 
   components(list: unknown, path: Path, where: "top" | "container") {

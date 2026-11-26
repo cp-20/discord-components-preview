@@ -219,3 +219,20 @@ export function formatTimestamp(ts: number, style: string, now = Date.now(), loc
       return fmt({ year: "numeric", month: "long", day: "numeric", hour: "numeric", minute: "2-digit" });
   }
 }
+
+// ---------- jumbo emoji ----------
+
+const onlyUnicodeEmoji = /^(?:\p{Extended_Pictographic}|\p{Emoji_Modifier}|\p{Regional_Indicator}|️|‍|\s)*$/u;
+const unicodeEmoji = /\p{Extended_Pictographic}|\p{Regional_Indicator}{2}/gu;
+
+/** The client draws emoji large when a message is nothing but emoji (up to 30) */
+export function isJumbo(blocks: Block[]): boolean {
+  if (blocks.length !== 1 || blocks[0].t !== "p") return false;
+  let count = 0;
+  for (const n of blocks[0].c) {
+    if (n.t === "emoji") count++;
+    else if (n.t === "text" && onlyUnicodeEmoji.test(n.v)) count += n.v.match(unicodeEmoji)?.length ?? 0;
+    else return false;
+  }
+  return count > 0 && count <= 30;
+}

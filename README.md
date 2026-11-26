@@ -1,73 +1,98 @@
-# Components V2 Preview
+# Message Preview for Discord
 
-Edit a Discord **Components V2** payload in the browser and see it rendered like the Discord client, live.
+Edit a Discord message payload in the browser and see it drawn like the Discord client, live: plain **content**, classic **embeds**, **Action Rows**, and **Components V2**.
 Share any payload as a link; the JSON travels in the URL fragment, so it never reaches the server.
 
 **https://discord.cp20.dev**
 
+| Page | What it is |
+| --- | --- |
+| [`/`](https://discord.cp20.dev) | Editor with live preview, validation and share links |
+| [`/gallery`](https://discord.cp20.dev/gallery) | Every example, rendered, each with *Open in editor* |
+| [`/docs`](https://discord.cp20.dev/docs) | Formats, limits and the link format, for people |
+| [`/llms.txt`](https://discord.cp20.dev/llms.txt) | The same for AI agents: link algorithm, exact dictionary, every format, example links |
+| [`/p2-dictionary.txt`](https://discord.cp20.dev/p2-dictionary.txt) | The compression dictionary as raw bytes |
+
+`/llms.txt` is generated from the source at build time (`src/llms.ts`, `src/spec.ts`), so it always matches what the site does.
+
 ## Usage
 
-1. Paste or write a message payload in the editor (left). Both forms are accepted:
-   - a message object: `{ "flags": 32768, "components": [ ... ] }` (webhook `username` / `avatar_url` are used for the author)
-   - a bare array of components: `[ { "type": 17, ... } ]`
-2. The preview (right) updates on every keystroke. Dark theme by default; the sun/moon button switches both the tool and the preview to light.
-3. **Copy link** (or <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd>) copies a URL that contains the current payload. The address bar is also kept in sync.
-4. **Examples** loads a preset (undo with <kbd>Ctrl</kbd>+<kbd>Z</kbd>). **Format** pretty-prints the JSON.
-5. **Inspect** lets you click any component in the preview to select its JSON in the editor.
+1. Paste or write a payload in the editor (left). Accepted shapes:
+   - a message object `{ "content", "embeds", "components", "flags" }` as sent to the API (webhook `username` / `avatar_url` are used for the author)
+   - a bare array of components `[ { "type": 17, ... } ]`
+2. The preview (right) updates on every keystroke. Dark by default; the sun/moon button switches the tool and the preview to light.
+3. **Copy link** (<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd>) copies a URL with the current payload. The address bar is kept in sync too.
+4. **Examples** loads a preset (undo with <kbd>Ctrl</kbd>+<kbd>Z</kbd>). **Format** pretty-prints the JSON. **Inspect** lets you click any part of the preview (content, an embed, a component) to select its JSON.
 
 Problems are reported in two levels:
 
-- **Errors** (invalid JSON, or a shape that can't be rendered such as a Section without `accessory`) replace the preview with a list. Each entry shows `line:column` and jumps to the spot; the editor underlines it too.
-- **Warnings** (things the API would reject but that can still be drawn: missing `flags: 32768`, a style 1–4 button without `custom_id`, more than 5 buttons in a row, more than 40 components or 4000 characters, …) are listed under the preview.
+- **Errors** (invalid JSON, or a shape that can't be drawn) replace the preview with a list. Each entry shows `line:column` and jumps to the spot.
+- **Warnings** (things Discord's API would reject but that can still be drawn) are listed under the preview: a V2 component without `flags: 32768`, `content`/`embeds` together with the V2 flag (Discord rejects them, so the preview leaves them out), over-long embed fields, more than 10 embeds or 6000 embed characters, more than 5 buttons in a row, more than 40 components, …
 
 On phones the editor and the preview are two tabs.
 
-## Supported components
+## What is rendered
+
+**Message**: author line, `content` with Discord markdown (emoji-only content is drawn large), embeds, then components. `flags`: 4 hides embeds, 64 adds the ephemeral "Only you can see this" line, 32768 switches to Components V2.
+
+**Embeds**: color bar, author (icon, link), title (link), description, fields with Discord's inline layout (3 per row, 2 next to a thumbnail), thumbnail, image, footer with icon and `timestamp` ("Today at …").
+
+**Components**
 
 | type | Component | Rendering |
 | ---: | --- | --- |
 | 17 | Container | `accent_color` bar, `spoiler` blur |
-| 10 | Text Display | Discord markdown, see below |
+| 10 | Text Display | Discord markdown |
 | 9 | Section | 1–3 Text Displays + accessory (Thumbnail or Button) |
 | 11 | Thumbnail | `description` as alt, `spoiler` |
 | 12 | Media Gallery | Discord's 1–10 item layouts, `spoiler` |
-| 14 | Separator | `divider` true/false, `spacing` 1 (small) / 2 (large) |
+| 14 | Separator | `divider`, `spacing` 1 / 2 |
 | 1 | Action Row | buttons wrap like the client |
-| 2 | Button | Primary, Secondary, Success, Danger, Link (opens the URL), Premium; `disabled`; unicode or custom `emoji`. Clicking a non-link button shows its `custom_id` |
-| 3, 5–8 | Select menus | placeholder only |
+| 2 | Button | all 6 styles, `disabled`, unicode or custom `emoji`; non-link buttons show their `custom_id` when clicked |
+| 3, 5–8 | Select menus | String Select opens its options (emoji, description, `default`); others show the placeholder |
 | 13 | File | `attachment://` name card |
-| anything else | Fallback | "type N" label with the raw JSON, for debugging |
+| other | Fallback | "type N" label with the raw JSON |
 
-Markdown in Text Displays: `#`/`##`/`###` headings, `-#` subtext, `**bold**`, `*italic*`/`_italic_`, `__underline__`, `~~strike~~`, `||spoiler||`, `` `code` ``, fenced code blocks, `>` and `>>>` quotes, `-`/`*`/`1.` lists with nesting, `[masked](https://…)` and bare links, `<@user>`, `<@&role>`, `<#channel>`, `</command:id>`, `@everyone`/`@here`, custom emoji `<:name:id>`, and timestamps `<t:unix:t|T|d|D|f|F|R>`.
+**Markdown**: `#`/`##`/`###`, `-#` subtext, `**bold**`, `*italic*`, `__underline__`, `~~strike~~`, `||spoiler||`, `` `code` ``, fenced code, `>` / `>>>` quotes, nested lists, `[masked](https://…)` and bare links, `<@user>`, `<@&role>`, `<#channel>`, `</command:id>`, `@everyone`/`@here`, `<t:unix:style>` timestamps.
+
+**Custom emoji**: `<:name:id>` and `<a:name:id>` in content, Text Displays and embed text, and `{ "id", "name", "animated" }` on buttons and select options, load from `https://cdn.discordapp.com/emojis/<id>.webp` (`.gif` when animated). If the CDN returns 404, the raw code is shown as a chip.
 
 ## Share link format
 
 ```
-https://discord.cp20.dev/#p=<payload>
-payload = base64url( deflate-raw( UTF-8 JSON ) )     // RFC 1951, no zlib header, no padding
+https://discord.cp20.dev/#p2=<payload>
+payload = base64url( deflate-raw( UTF-8( minified JSON ), dictionary = DICTIONARY ) )   // no padding
 ```
 
-When reading a link the following are also accepted, in this order of attempts:
+- Raw DEFLATE (RFC 1951, no zlib header) with a **preset dictionary** of phrases common in Discord payloads (`src/dictionary.ts`, 1,993 bytes, version 1). The dictionary is frozen; a different one would need a new prefix (`#p3=`).
+- The JSON is minified before compressing and pretty-printed when a link is opened.
+- `#p2=` is the only format the site reads. Links from the retired `#p=` format show a notice instead of a payload.
 
-1. raw deflate (above)
-2. zlib-wrapped deflate (RFC 1950, e.g. Python `zlib.compress`)
-3. uncompressed base64url **or** standard base64 of the UTF-8 JSON (padding optional)
-4. plain URL-encoded JSON (`#p=%7B%22components%22...`)
+Effect on the bundled examples (fragment length in characters, `#p=` = the retired format: deflate of the pretty-printed editor text):
 
-Generating a link elsewhere:
+| example | `#p=` | `#p2=` | change |
+| --- | ---: | ---: | ---: |
+| Movie showtimes | 915 | 618 | −32% |
+| Rich embed | 735 | 526 | −28% |
+| Content, embeds and buttons | 685 | 451 | −34% |
+| Media gallery | 555 | 300 | −46% |
+| Plain message | 385 | 355 | −8% |
 
-```js
-// Node / browser with fflate
-import { deflateSync, strToU8 } from "fflate";
-const p = Buffer.from(deflateSync(strToU8(JSON.stringify(payload)))).toString("base64url");
-const url = `https://discord.cp20.dev/#p=${p}`;
-```
+`test/compression.test.ts` checks every preset gets shorter. Generating a link elsewhere:
 
 ```python
-import base64, json, zlib
-c = zlib.compressobj(9, zlib.DEFLATED, -15)          # -15 = raw deflate
-raw = c.compress(json.dumps(payload).encode()) + c.flush()
-url = "https://discord.cp20.dev/#p=" + base64.urlsafe_b64encode(raw).decode().rstrip("=")
+import base64, json, zlib, urllib.request
+DICT = urllib.request.urlopen("https://discord.cp20.dev/p2-dictionary.txt").read()
+c = zlib.compressobj(9, zlib.DEFLATED, -15, zdict=DICT)          # -15 = raw deflate
+raw = c.compress(json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode()) + c.flush()
+url = "https://discord.cp20.dev/#p2=" + base64.urlsafe_b64encode(raw).decode().rstrip("=")
+```
+
+```js
+import zlib from "node:zlib";
+const DICT = Buffer.from(await (await fetch("https://discord.cp20.dev/p2-dictionary.txt")).arrayBuffer());
+const url = "https://discord.cp20.dev/#p2=" +
+  zlib.deflateRawSync(Buffer.from(JSON.stringify(payload)), { level: 9, dictionary: DICT }).toString("base64url");
 ```
 
 The fragment (`#…`) is not part of HTTP requests, so payloads stay in the browser. The site is static files only; the last draft is kept in `localStorage` of your own browser.
@@ -76,28 +101,30 @@ The fragment (`#…`) is not part of HTTP requests, so payloads stay in the brow
 
 ```sh
 pnpm install
-pnpm dev          # Vite dev server
+pnpm dev          # Vite dev server (also serves /llms.txt and /p2-dictionary.txt)
 pnpm check        # tsc + vitest
-pnpm build        # -> dist/
-node scripts/shots.mjs http://localhost:4173 shots   # screenshots of every preset (needs `pnpm vite preview`)
+pnpm build        # -> dist/, including llms.txt and p2-dictionary.txt
+pnpm exec vite preview --port 4173 &
+node scripts/smoke.mjs http://localhost:4173          # main flows end to end (also works against production)
+node scripts/shots.mjs http://localhost:4173 shots    # screenshots of the views and edge cases
 ```
 
-Stack: Vite, Preact, CodeMirror 6, jsonc-parser (error positions), fflate (deflate). No server code.
+Stack: Vite, Preact, CodeMirror 6, jsonc-parser (error positions), fflate (deflate with dictionary). No server code.
+
+| File | Role |
+| --- | --- |
+| `src/share.ts`, `src/dictionary.ts` | `#p2=` encoding and the frozen dictionary |
+| `src/validate.ts` | errors and warnings with source positions |
+| `src/Preview.tsx`, `src/embed.ts`, `src/emoji.ts`, `src/markdown.ts` | the client look-alike |
+| `src/spec.ts`, `src/llms.ts` | format tables shared by `/docs` and `/llms.txt` |
+| `src/presets.ts` | examples for the menu, gallery, docs and llms.txt |
 
 ## Deploy (Cloudflare Workers, static assets)
 
-`wrangler.jsonc` declares an assets-only Worker serving `./dist` with the custom domain `discord.cp20.dev`.
+`wrangler.jsonc` declares an assets-only Worker serving `./dist` with the custom domain `discord.cp20.dev`; unknown paths such as `/gallery` fall back to `index.html`.
+Production is connected to Workers Builds: every push to `main` runs `pnpm run build` and `npx wrangler deploy` on Cloudflare. GitHub Actions only runs tests and the build. Manual deploy: `pnpm deploy`.
 
-```sh
-pnpm wrangler login   # once
-pnpm deploy           # vite build && wrangler deploy
-```
-
-The custom domain is created on first deploy (the `cp20.dev` zone must be in the same Cloudflare account).
-
-Production is also connected to Workers Builds: every push to `main` runs `pnpm run build` and `npx wrangler deploy` on Cloudflare. GitHub Actions only runs tests and the build.
-
-`public/_headers` sets a strict CSP (`script-src 'self'`). It also blocks the Cloudflare Web Analytics beacon if the zone injects it, which keeps share URLs out of third-party scripts.
+`public/_headers` sets a strict CSP (`script-src 'self'`). It also blocks the Cloudflare Web Analytics beacon if the zone injects it, which keeps share URLs out of third-party scripts. Emoji and images load from any https origin (`img-src *`).
 
 Not affiliated with Discord. The preview imitates the client's look so you can check a layout before sending it.
 

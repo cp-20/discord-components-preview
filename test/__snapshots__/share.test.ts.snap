@@ -1,0 +1,8 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`share links (#p2=) > keeps the frozen dictionary byte-for-byte 1`] = `
+{
+  "length": 1993,
+  "sha256": "15d0da044d8ba2dc1b7b90a095c99dfd27b06634b2609bf1d757abb32894db56",
+}
+`;

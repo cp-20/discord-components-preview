@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks"
 import { analyze, locatePath } from "./validate";
 import { presets, presetJson } from "./presets";
 import { encodePayload, readFragment, shareUrl } from "./share";
+import { useRoute, routePath, isPlainClick, type Route } from "./route";
+import { Gallery } from "./Gallery";
+import { Docs } from "./Docs";
 import { Preview } from "./Preview";
 import { createEditor, type EditorHandle } from "./editor";
 import { Icon } from "./icons";
@@ -31,9 +34,6 @@ function initialText(): string {
   return readFragment(location.hash) ?? store.get("draft") ?? presetJson(presets[0]);
 }
 
-function formatBytes(n: number) {
-  return n < 1024 ? `${n} B` : `${(n / 1024).toFixed(1)} KB`;
-}
 
 async function copyText(text: string) {
   try {
@@ -60,6 +60,7 @@ export function App() {
   const [copied, setCopied] = useState(false);
   const [toast, setToast] = useState<{ text: string; id: number } | null>(null);
   const [split, setSplit] = useState(() => Number(store.get("split")) || 0.46);
+  const [route, go] = useRoute();
   const editorHost = useRef<HTMLDivElement>(null);
   const editor = useRef<EditorHandle | null>(null);
   const panes = useRef<HTMLElement>(null);
@@ -82,11 +83,31 @@ export function App() {
   // Keep the address bar and the local draft in sync, debounced
   useEffect(() => {
     const t = setTimeout(() => {
-      history.replaceState(null, "", `#p=${fragment}`);
+      if (route === "editor") history.replaceState(null, "", `/#p2=${fragment}`);
       store.set("draft", text);
     }, 300);
     return () => clearTimeout(t);
-  }, [fragment]);
+  }, [fragment, route]);
+
+  // CodeMirror measures nothing while hidden; remeasure when the editor comes back
+  useEffect(() => {
+    if (route === "editor") editor.current?.view.requestMeasure();
+  }, [route]);
+
+  // Links from before #p2= can't be read any more; say so instead of silently showing the draft
+  useEffect(() => {
+    if (/(?:^#|&)p=/.test(location.hash)) showToast("This link uses the retired #p= format and can't be opened");
+  }, []);
+
+  /** Opens a #p2= hash in the editor, the same path a shared link takes */
+  const openHash = useCallback(
+    (hash: string) => {
+      const incoming = readFragment(hash);
+      go("editor", hash);
+      if (incoming !== null) editor.current?.setText(incoming);
+    },
+    [go],
+  );
 
   // Pasting another share link into this tab
   useEffect(() => {
@@ -115,7 +136,7 @@ export function App() {
     if (await copyText(url)) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1600);
-      showToast(url.length > 8000 ? `Link copied · ${formatBytes(url.length)}, some apps may cut links this long` : "Link copied");
+      showToast(url.length > 8000 ? `Link copied · ${url.length.toLocaleString("en-US")} characters, some apps cut links this long` : "Link copied");
     } else {
       showToast("Couldn't copy. The link is in the address bar");
     }
@@ -123,14 +144,14 @@ export function App() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s" && route === "editor") {
         e.preventDefault();
         copyLink();
       }
     };
     addEventListener("keydown", onKey);
     return () => removeEventListener("keydown", onKey);
-  }, [copyLink]);
+  }, [copyLink, route]);
 
   const format = () => {
     try {
@@ -176,21 +197,50 @@ export function App() {
   const warnings = analysis.kind === "syntax" ? [] : analysis.warnings;
 
   return (
-    <div class="app">
+    <div class="app" data-route={route}>
       <header class="bar">
-        <a class="brand" href="/" aria-label="Components V2 Preview, start over">
-          <svg class="brand-mark" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
-            <rect x="1.5" y="1.5" width="17" height="17" rx="4.5" fill="none" stroke="currentColor" stroke-width="1.5" />
-            <rect x="5" y="5.5" width="10" height="2" rx="1" fill="currentColor" />
-            <rect x="5" y="9" width="6" height="2" rx="1" fill="currentColor" opacity=".55" />
-            <rect x="5" y="12.5" width="4" height="2.5" rx="1.25" fill="var(--accent)" />
-          </svg>
-          <span class="brand-name">
-            Components V2 <span class="brand-sub">preview</span>
-          </span>
-        </a>
+        <div class="bar-start">
+          <a
+            class="brand"
+            href="/"
+            aria-label="Message Preview, editor"
+            onClick={(e) => {
+              if (!isPlainClick(e)) return;
+              e.preventDefault();
+              go("editor", `#p2=${fragment}`);
+            }}
+          >
+            <svg class="brand-mark" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
+              <rect x="1.5" y="1.5" width="17" height="17" rx="4.5" fill="none" stroke="currentColor" stroke-width="1.5" />
+              <rect x="5" y="5.5" width="10" height="2" rx="1" fill="currentColor" />
+              <rect x="5" y="9" width="6" height="2" rx="1" fill="currentColor" opacity=".55" />
+              <rect x="5" y="12.5" width="4" height="2.5" rx="1.25" fill="var(--accent)" />
+            </svg>
+            <span class="brand-name">
+              Message Preview <span class="brand-sub">for Discord</span>
+            </span>
+          </a>
+          <nav class="nav" aria-label="Views">
+            {(["editor", "gallery", "docs"] as Route[]).map((r) => (
+              <a
+                key={r}
+                href={routePath[r]}
+                class="nav-link"
+                aria-current={route === r ? "page" : undefined}
+                onClick={(e) => {
+                  if (!isPlainClick(e)) return;
+                  e.preventDefault();
+                  if (r === route) return;
+                  go(r, r === "editor" ? `#p2=${fragment}` : "");
+                }}
+              >
+                {r === "editor" ? "Editor" : r === "gallery" ? "Gallery" : "Docs"}
+              </a>
+            ))}
+          </nav>
+        </div>
         <div class="bar-actions">
-          <PresetMenu onPick={(json) => editor.current?.setText(json)} />
+          {route === "editor" && <PresetMenu onPick={(json) => editor.current?.setText(json)} />}
           <button
             class="btn ghost icon-only"
             type="button"
@@ -210,14 +260,26 @@ export function App() {
           >
             <Icon name="github" />
           </a>
-          <button class="btn primary" type="button" onClick={copyLink} title="Copy a link with this payload (Ctrl+S)">
-            <Icon name={copied ? "check" : "link"} />
-            <span class="hide-sm">{copied ? "Copied" : "Copy link"}</span>
-          </button>
+          {route === "editor" && (
+            <button class="btn primary" type="button" onClick={copyLink} title="Copy a link with this payload (Ctrl+S)" aria-label="Copy link">
+              <Icon name={copied ? "check" : "link"} />
+              <span class="hide-sm">{copied ? "Copied" : "Copy link"}</span>
+            </button>
+          )}
         </div>
       </header>
 
-      <div class="tabs" role="tablist">
+      {route !== "editor" && (
+        <main class="page-scroll" key={route}>
+          {route === "gallery" ? (
+            <Gallery theme={theme} onOpen={openHash} onInteract={(t) => showToast(`Interaction · ${t}`)} />
+          ) : (
+            <Docs theme={theme} onOpen={openHash} onInteract={(t) => showToast(`Interaction · ${t}`)} />
+          )}
+        </main>
+      )}
+
+      <div class="tabs" role="tablist" hidden={route !== "editor"}>
         <button role="tab" aria-selected={tab === "edit"} class={tab === "edit" ? "on" : ""} onClick={() => setTab("edit")}>
           Editor
           {errorCount > 0 && <span class="tab-dot error" aria-label="has errors" />}
@@ -227,7 +289,7 @@ export function App() {
         </button>
       </div>
 
-      <main class="panes" ref={panes} data-tab={tab} style={{ "--split": `${split * 100}%` }}>
+      <main class="panes" ref={panes} data-tab={tab} hidden={route !== "editor"} style={{ "--split": `${split * 100}%` }}>
         <section class="pane editor-pane" aria-label="Editor">
           <div class="pane-head">
             <span class="file-name">payload.json</span>
@@ -243,7 +305,7 @@ export function App() {
           <footer class="pane-foot">
             <Icon name="lock" size={14} />
             <span class="mono">
-              #p= <span class="num">{formatBytes(fragment.length)}</span>
+              #p2= <span class="num">{(fragment.length + 4).toLocaleString("en-US")}</span> chars
             </span>
             <span class="foot-note">Stored in the link's fragment, which never reaches the server</span>
           </footer>
@@ -305,17 +367,28 @@ function Status({ analysis }: { analysis: ReturnType<typeof analyze> }) {
       </span>
     );
   }
-  const { components, textLength } = analysis.stats;
+  const { mode, components, textLength, contentLength, embedLength, embeds } = analysis.stats;
+  const n = (v: number, max: number) => <span class={`num${v > max ? " over" : ""}`}>{v.toLocaleString("en-US")}</span>;
   return (
     <span class="status ok">
       <span class="dot" />
-      <span>
-        <span class="num">{components}</span>/40 components
-      </span>
-      <span class="sep" />
-      <span class="chars">
-        <span class={`num${textLength > 4000 ? " over" : ""}`}>{textLength.toLocaleString("en-US")}</span>/4,000 chars
-      </span>
+      {mode === "v2" ? (
+        <>
+          <span>{n(components, 40)}/40 components</span>
+          <span class="sep" />
+          <span class="chars">{n(textLength, 4000)}/4,000 chars</span>
+        </>
+      ) : (
+        <>
+          <span>{n(contentLength, 2000)}/2,000 content</span>
+          {embeds > 0 && (
+            <>
+              <span class="sep" />
+              <span class="chars">{n(embedLength, 6000)}/6,000 embed</span>
+            </>
+          )}
+        </>
+      )}
     </span>
   );
 }
@@ -390,13 +463,17 @@ function PresetMenu({ onPick }: { onPick: (json: string) => void }) {
   }, [open]);
   return (
     <div class="menu" ref={ref}>
-      <button class="btn ghost" type="button" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
-        Examples
-        <Icon name="chevron" size={14} />
+      <button class="btn ghost examples-btn" type="button" aria-haspopup="menu" aria-expanded={open} aria-label="Examples" onClick={() => setOpen(!open)}>
+        <Icon name="list" class="show-sm" />
+        <span class="hide-sm">Examples</span>
+        <Icon name="chevron" size={14} class="hide-sm" />
       </button>
       {open && (
         <div class="menu-pop" role="menu">
-          {presets.map((p) => (
+          {(["v2", "classic"] as const).map((kind) => (
+            <div key={kind} class="menu-group" role="group" aria-label={kind === "v2" ? "Components V2" : "Classic messages"}>
+              <span class="menu-label">{kind === "v2" ? "Components V2" : "Classic messages"}</span>
+              {presets.filter((p) => p.kind === kind).map((p) => (
             <button
               key={p.id}
               role="menuitem"
@@ -410,6 +487,8 @@ function PresetMenu({ onPick }: { onPick: (json: string) => void }) {
               <span class="menu-name">{p.name}</span>
               <span class="menu-note">{p.note}</span>
             </button>
+          ))}
+            </div>
           ))}
           <div class="menu-foot">Replaces the editor. Undo with Ctrl+Z</div>
         </div>
