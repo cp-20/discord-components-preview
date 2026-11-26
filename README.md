@@ -1,61 +1,61 @@
 # Message Preview for Discord
 
-Edit a Discord message payload in the browser and see it drawn like the Discord client, live: plain **content**, classic **embeds**, **Action Rows**, and **Components V2**.
-Share any payload as a link; the JSON travels in the URL fragment, so it never reaches the server.
+Edit a Discord message payload in your browser with a live preview styled like the Discord client: plain **content**, **embeds**, **Action Rows**, and **Components V2**.
+Share any payload as a link; nothing is sent to a server.
 
 **https://discord.cp20.dev**
 
-| Page | What it is |
+| Page | Description |
 | --- | --- |
-| [`/`](https://discord.cp20.dev) | Editor with live preview, validation and share links |
-| [`/gallery`](https://discord.cp20.dev/gallery) | Every example, rendered, each with *Open in editor* |
-| [`/docs`](https://discord.cp20.dev/docs) | Formats, limits and the link format, for people |
-| [`/llms.txt`](https://discord.cp20.dev/llms.txt) | The same for AI agents: formats and ready example links (link encoding: see `src/share.ts`) |
-| [`/p3-dictionary.txt`](https://discord.cp20.dev/p3-dictionary.txt) | The compression dictionary as raw bytes |
+| [`/`](https://discord.cp20.dev) | JSON editor with live preview, API validation, and shareable links |
+| [`/gallery`](https://discord.cp20.dev/gallery) | Rendered message examples that open in the editor |
+| [`/docs`](https://discord.cp20.dev/docs) | Reference for supported payload fields, components, and Discord API limits |
+| [`/llms.txt`](https://discord.cp20.dev/llms.txt) | Reference and ready-to-open example links for AI agents (see `src/share.ts` for link encoding) |
+| [`/p3-dictionary.txt`](https://discord.cp20.dev/p3-dictionary.txt) | Raw bytes of the compression dictionary |
 
-`/llms.txt` is generated from the source at build time (`src/llms.ts`, `src/spec.ts`), so it always matches what the site does.
+`/llms.txt` is generated from source at build time (`src/llms.ts`, `src/spec.ts`), so it stays in sync with the site.
 
 ## Usage
 
-1. Paste or write a payload in the editor (left). Accepted shapes:
-   - a message object `{ "content", "embeds", "components", "flags" }` as sent to the API (webhook `username` / `avatar_url` are used for the author)
-   - a bare array of components `[ { "type": 17, ... } ]`
-2. The preview (right) updates on every keystroke. Dark by default; the sun/moon button switches the tool and the preview to light.
-3. **Copy link** (<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd>) copies a URL with the current payload. The address bar is kept in sync too.
-4. **Examples** loads a preset (undo with <kbd>Ctrl</kbd>+<kbd>Z</kbd>). **Format** pretty-prints the JSON. **Inspect** lets you click any part of the preview (content, an embed, a component) to select its JSON.
+1. Paste or write a JSON payload in the editor on the left. Supported formats:
+   - a Discord message payload object `{ "content", "embeds", "components", "flags" }` as sent to the API (webhook `username` and `avatar_url` override the author in the preview)
+   - a top-level array of components `[ { "type": 17, ... } ]`
+2. The preview on the right updates as you type. It uses the dark theme by default; click the sun/moon button to switch both the interface and the preview to light mode.
+3. **Copy link** (<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd>) copies a shareable URL containing the current payload. The address bar updates automatically as you edit.
+4. **Examples** loads a preset payload (press <kbd>Ctrl</kbd>+<kbd>Z</kbd> to undo). **Format** pretty-prints the JSON. **Inspect** lets you click an element in the preview (content, an embed, or a component) to highlight its JSON in the editor.
 
-Problems are reported in two levels:
+Validation issues are reported at two levels:
 
-- **Errors** (invalid JSON, or a shape that can't be drawn) replace the preview with a list. Each entry shows `line:column` and jumps to the spot.
-- **Warnings** (things Discord's API would reject but that can still be drawn) are listed under the preview: a V2 component without `flags: 32768`, `content`/`embeds` together with the V2 flag (Discord rejects them, so the preview leaves them out), over-long embed fields, more than 10 embeds or 6000 embed characters, more than 5 buttons in a row, more than 40 components, …
+- **Errors** (invalid JSON or missing required structure that prevents rendering) replace the preview with a list of issues. Each item shows `line:column` and jumps to that position in the editor.
+- **Warnings** (Discord API validation issues that can still be previewed) appear below the preview, including Components V2 without `flags: 32768`, `content` or `embeds` combined with `IS_COMPONENTS_V2` (ignored in the preview as Discord rejects them), oversized embed fields, more than 10 embeds or 6,000 embed characters, more than 5 buttons in an Action Row, and more than 40 components total.
 
-On phones the editor and the preview are two tabs.
+On mobile screens, the editor and preview are separated into tabs.
 
 ## What is rendered
 
-**Message**: author line, `content` with Discord markdown (emoji-only content is drawn large), embeds, then components. `flags`: 4 hides embeds, 64 adds the ephemeral "Only you can see this" line, 32768 switches to Components V2.
+**Message**: author header, `content` with Discord markdown (emoji-only messages render at a larger size), embeds, and components. Message `flags`: `4` (`SUPPRESS_EMBEDS`) hides embeds, `64` (`EPHEMERAL`) adds the "Only you can see this" notice, and `32768` (`IS_COMPONENTS_V2`) switches to Components V2.
 
-**Embeds**: color bar, author (icon, link), title (link), description, fields with Discord's inline layout (3 per row, 2 next to a thumbnail), thumbnail, image, footer with icon and `timestamp` ("Today at …").
+**Embeds**: colored left border, author (with icon and link), title (with link), description, fields with Discord's inline grid (3 per row, or 2 next to a thumbnail), thumbnail, image, and footer with icon and `timestamp` ("Today at …").
 
 **Components**
 
-| type | Component | Rendering |
+| Type | Component | Rendering |
 | ---: | --- | --- |
-| 17 | Container | `accent_color` bar, `spoiler` blur |
+| 17 | Container | `accent_color` border and `spoiler` blur |
 | 10 | Text Display | Discord markdown |
-| 9 | Section | 1–3 Text Displays + accessory (Thumbnail or Button) |
-| 11 | Thumbnail | `description` as alt, `spoiler` |
-| 12 | Media Gallery | Discord's 1–10 item layouts, `spoiler` |
-| 14 | Separator | `divider`, `spacing` 1 / 2 |
-| 1 | Action Row | buttons wrap like the client |
-| 2 | Button | all 6 styles, `disabled`, unicode or custom `emoji`; non-link buttons show their `custom_id` when clicked |
-| 3, 5–8 | Select menus | String Select opens its options (emoji, description, `default`); others show the placeholder |
-| 13 | File | `attachment://` name card |
-| other | Fallback | "type N" label with the raw JSON |
+| 9 | Section | 1–3 Text Displays with a Thumbnail or Button accessory |
+| 11 | Thumbnail | `description` as alt text and `spoiler` blur |
+| 12 | Media Gallery | Discord's 1–10 item grid layouts and `spoiler` blur |
+| 14 | Separator | `divider` line and `spacing` (`1` small, `2` large) |
+| 1 | Action Row | Buttons wrap as in the Discord client |
+| 2 | Button | All 6 styles, `disabled` state, and Unicode or custom `emoji`; clicking non-link buttons displays their `custom_id` |
+| 3, 5–8 | Select menus | String Select opens its options (`emoji`, `description`, `default`); other select types show the placeholder |
+| 13 | File | `attachment://` file card |
+| Other | Fallback | `type N` label with raw JSON |
 
-**Markdown**: `#`/`##`/`###`, `-#` subtext, `**bold**`, `*italic*`, `__underline__`, `~~strike~~`, `||spoiler||`, `` `code` ``, fenced code, `>` / `>>>` quotes, nested lists, `[masked](https://…)` and bare links, `<@user>`, `<@&role>`, `<#channel>`, `</command:id>`, `@everyone`/`@here`, `<t:unix:style>` timestamps.
+**Markdown**: `#`/`##`/`###` headings, `-#` subtext, `**bold**`, `*italic*`, `__underline__`, `~~strikethrough~~`, `||spoiler||`, `` `inline code` ``, fenced code blocks, `>` and `>>>` block quotes, nested lists, `[masked](https://…)` and plain links, `<@user>`, `<@&role>`, `<#channel>`, `</command:id>`, `@everyone`/`@here`, and `<t:unix:style>` timestamps.
 
-**Custom emoji**: `<:name:id>` and `<a:name:id>` in content, Text Displays and embed text, and `{ "id", "name", "animated" }` on buttons and select options, load from `https://cdn.discordapp.com/emojis/<id>.webp` (`.gif` when animated). If the CDN returns 404, the raw code is shown as a chip.
+**Custom emoji**: `<:name:id>` and `<a:name:id>` in `content`, Text Display components, and embed text, plus `{ "id", "name", "animated" }` on buttons and select menu options, load from `https://cdn.discordapp.com/emojis/<id>.webp` (or `.gif` when animated). If the CDN returns 404, the raw emoji syntax is shown as an inline code chip.
 
 ## Share link format
 

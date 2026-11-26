@@ -5,12 +5,12 @@ const groups: Array<{ kind: PresetKind; title: string; lead: string }> = [
   {
     kind: "v2",
     title: "Components V2",
-    lead: "flags: 32768. The components are the whole message: Containers, Sections, galleries, buttons and menus in any order.",
+    lead: "Requires flags: 32768 (IS_COMPONENTS_V2). Build the entire message from Containers, Sections, Media Galleries, buttons, and select menus in any order.",
   },
   {
     kind: "classic",
     title: "Classic messages",
-    lead: "content, embeds and up to five Action Rows. What most bots and webhooks still send.",
+    lead: "Combines content, up to 10 embeds, and up to 5 Action Rows. This is the standard format used by most bots and webhooks.",
   },
 ];
 
@@ -19,7 +19,7 @@ export function Gallery({ theme, onOpen, onInteract }: { theme: "dark" | "light"
     <div class="page">
       <header class="page-head">
         <h1>Gallery</h1>
-        <p>What each message format can do, drawn the way Discord draws it. Open any example in the editor to change it.</p>
+        <p>Rendered examples of classic messages and Components V2 layouts. Open any example in the editor to customize it.</p>
       </header>
       {groups.map((g) => (
         <section key={g.kind} class="page-section" aria-labelledby={`g-${g.kind}`}>

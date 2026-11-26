@@ -12,10 +12,10 @@ interface DocsProps {
 }
 
 const toc: Array<[string, string]> = [
-  ["message", "Message object"],
+  ["message", "Message payload"],
   ["content", "Content and markdown"],
   ["embeds", "Embeds"],
-  ["mixed", "Content, embeds and buttons"],
+  ["mixed", "Content, embeds, and buttons"],
   ["v2", "Components V2"],
   ["emoji", "Custom emoji"],
   ["links", "Sharing"],
@@ -101,31 +101,31 @@ export function Docs({ theme, onOpen, onInteract }: DocsProps) {
           </a>
         ))}
         <a class="toc-agent" href="/llms.txt">
-          /llms.txt for agents
+          /llms.txt for AI agents
         </a>
       </nav>
 
       <div class="doc-body">
         <header class="page-head">
           <h1>Docs</h1>
-          <p>What you can write in a message payload and what Discord allows. Every example opens in the editor.</p>
+          <p>Reference for supported Discord message payload fields, limits, and components. Every example can be opened in the editor.</p>
         </header>
 
-        <Section id="message" title="Message object" lead="The same object you send to Discord's API: create message, execute webhook, or the data of an interaction response. A bare array of components also works.">
-          <KeyTable head={["key", "type", "notes"]} rows={messageFields} />
+        <Section id="message" title="Message payload" lead="Accepts the same JSON object sent to the Discord API for Create Message, Execute Webhook, or an interaction response's data object. You can also paste a top-level array of components.">
+          <KeyTable head={["Field", "Type", "Description"]} rows={messageFields} />
           <h3>Flags</h3>
-          <KeyTable head={["value", "name", "notes"]} rows={flagRows} />
-          <h3>Classic or Components V2</h3>
+          <KeyTable head={["Value", "Flag", "Description"]} rows={flagRows} />
+          <h3>Classic vs. Components V2</h3>
           <Table head={["", "Classic", "Components V2"]} rows={modes} />
         </Section>
 
-        <Section id="content" title="Content and markdown" lead="The simplest message is just content. The same markdown works in Text Displays, embed descriptions and field values.">
+        <Section id="content" title="Content and markdown" lead="A basic message only needs a content field. The same Discord markdown syntax works in Text Display components, embed descriptions, and embed field values.">
           <div class="table-wrap">
             <table class="table">
               <thead>
                 <tr>
-                  <th>syntax</th>
-                  <th>result</th>
+                  <th>Syntax</th>
+                  <th>Result</th>
                 </tr>
               </thead>
               <tbody>
@@ -143,15 +143,15 @@ export function Docs({ theme, onOpen, onInteract }: DocsProps) {
           {ex("plain")}
         </Section>
 
-        <Section id="embeds" title="Embeds" lead="Rich embeds: a colored bar with author, title, description, fields, images and a footer. Up to 10 per message.">
-          <KeyTable head={["key", "type", "notes"]} rows={embedFields} />
+        <Section id="embeds" title="Embeds" lead="Structured cards with a colored left border, author, title, description, fields, images, and a footer. A message can include up to 10 embeds.">
+          <KeyTable head={["Field", "Type", "Description"]} rows={embedFields} />
           {ex("embed")}
         </Section>
 
         <Section
           id="mixed"
-          title="Content, embeds and buttons"
-          lead="A classic message can combine content, several embeds and up to five Action Rows. They are drawn in that order."
+          title="Content, embeds, and buttons"
+          lead="A classic message can combine content, up to 10 embeds, and up to 5 Action Rows. Discord displays them in that order."
         >
           {ex("content-embeds")}
         </Section>
@@ -159,16 +159,16 @@ export function Docs({ theme, onOpen, onInteract }: DocsProps) {
         <Section
           id="v2"
           title="Components V2"
-          lead="With flags: 32768 the components are the whole message. content and embeds are rejected, so text goes into Text Displays and cards into Containers."
+          lead="When flags includes 32768 (IS_COMPONENTS_V2), the message is built entirely from components. Top-level content and embeds are not allowed; use Text Display for text and Container for grouped cards."
         >
           <div class="table-wrap">
             <table class="table">
               <thead>
                 <tr>
-                  <th>type</th>
-                  <th>component</th>
-                  <th>keys</th>
-                  <th>allowed in</th>
+                  <th>Type</th>
+                  <th>Component</th>
+                  <th>Fields</th>
+                  <th>Allowed in</th>
                 </tr>
               </thead>
               <tbody>
@@ -190,15 +190,15 @@ export function Docs({ theme, onOpen, onInteract }: DocsProps) {
           {ex("showtimes")}
         </Section>
 
-        <Section id="emoji" title="Custom emoji" lead="Any server emoji works by its id. A wrong id shows the raw code instead of an image.">
-          <Table head={["where", "static", "animated"]} rows={emojiSyntax} code={2} />
-          <p class="doc-note">Unicode emoji on buttons and options: <code>{'{ "name": "🎉" }'}</code>.</p>
+        <Section id="emoji" title="Custom emoji" lead="Use any custom emoji by its ID. If the ID does not exist, the preview displays the raw emoji syntax instead of an image.">
+          <Table head={["Location", "Non-animated", "Animated"]} rows={emojiSyntax} code={2} />
+          <p class="doc-note">Unicode emoji on buttons and select menu options: <code>{'{ "name": "🎉" }'}</code>.</p>
           {ex("emoji")}
         </Section>
 
-        <Section id="links" title="Sharing" lead="Copy link (Ctrl+S) gives a link that holds the whole message. Nothing is saved on a server, so anyone with the link sees the same preview.">
+        <Section id="links" title="Sharing" lead="Copy link (Ctrl+S) creates a URL that contains the entire payload. Nothing is stored on a server, and anyone with the link sees the same preview.">
           <p class="doc-note">
-            To build links from code, follow <a href={`${REPO}/blob/main/src/share.ts`}>src/share.ts</a>.
+            To generate share links programmatically, see <a href={`${REPO}/blob/main/src/share.ts`}>src/share.ts</a>.
           </p>
         </Section>
       </div>

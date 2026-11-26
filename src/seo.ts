@@ -19,21 +19,21 @@ export const PAGES: Record<Route, PageMeta> = {
     path: "/",
     title: "Message Preview for Discord: embeds and Components V2 editor",
     description:
-      "Write a Discord message payload (content, embeds, components, Components V2) and see it rendered like the Discord client. Share it as a link; nothing is stored on a server.",
+      "Preview Discord message payloads (content, embeds, and Components V2) in your browser, check them against API limits, and share them as a link.",
     heading: NAME,
   },
   gallery: {
     path: "/gallery",
     title: `Gallery · ${NAME}`,
     description:
-      "Example Discord messages rendered like the client: plain content, embeds, Action Rows with buttons and selects, and Components V2 layouts. Open any of them in the editor.",
+      "Rendered Discord message examples: plain content, embeds, Action Rows with buttons and select menus, and Components V2 layouts. Open any in the editor.",
     heading: "Gallery",
   },
   docs: {
     path: "/docs",
     title: `Docs · ${NAME}`,
     description:
-      "What a Discord message payload can contain and what Discord allows: message fields, markdown, embeds, Components V2, custom emoji and their limits, each with an example.",
+      "Reference for Discord message payload fields, markdown, embeds, Components V2, custom emoji, and API limits, with editable examples.",
     heading: "Docs",
   },
 };

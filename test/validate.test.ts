@@ -67,8 +67,8 @@ describe("analyze: classic messages", () => {
   });
   it("warns that V2 drops content and embeds", () => {
     const m = messages({ flags: 32768, content: "hi", embeds: [{ title: "t" }], components: [{ type: 10, content: "x" }] });
-    expect(m).toMatch(/"content" can't be used with IS_COMPONENTS_V2/);
-    expect(m).toMatch(/"embeds" can't be used with IS_COMPONENTS_V2/);
+    expect(m).toMatch(/"content" cannot be used with IS_COMPONENTS_V2/);
+    expect(m).toMatch(/"embeds" cannot be used with IS_COMPONENTS_V2/);
   });
   it("warns when V2 components are mixed into a classic message", () => {
     const a = ok({ content: "hi", components: [{ type: 17, components: [{ type: 10, content: "x" }] }] });
@@ -83,7 +83,7 @@ describe("analyze: classic messages", () => {
         {},
       ],
     });
-    for (const re of [/title is 257/, /color is an integer/, /timestamp is an ISO 8601/, /non-empty "name" and "value"/, /footer needs/, /image.url must be/, /empty embed/]) {
+    for (const re of [/title is 257/, /color must be an integer/, /timestamp must be an ISO 8601/, /non-empty "name" and "value"/, /footer requires/, /image\.url must start with/, /empty embed/]) {
       expect(m).toMatch(re);
     }
   });
@@ -91,7 +91,7 @@ describe("analyze: classic messages", () => {
     expect(messages({ content: "x".repeat(2001) })).toMatch(/at most 2000/);
     expect(messages({ embeds: Array.from({ length: 11 }, () => ({ title: "t" })) })).toMatch(/at most 10/);
     expect(messages({ embeds: [{ description: "x".repeat(4000) }, { description: "x".repeat(2001) }] })).toMatch(/at most 6000/);
-    expect(messages({ content: "" })).toMatch(/no content, embeds or components/);
+    expect(messages({ content: "" })).toMatch(/no content, embeds, or components/);
     const rows = Array.from({ length: 6 }, () => ({ type: 1, components: [{ type: 2, style: 5, label: "x", url: "https://e.com" }] }));
     expect(messages({ components: rows })).toMatch(/5 per message/);
   });
@@ -99,7 +99,7 @@ describe("analyze: classic messages", () => {
     const a = analyze(JSON.stringify({ title: "t", description: "d" }));
     expect(a.kind === "structure" && a.errors[0].message).toMatch(/single embed/);
     const b = analyze("{}");
-    expect(b.kind === "structure" && b.errors[0].message).toMatch(/content", "embeds" or "components/);
+    expect(b.kind === "structure" && b.errors[0].message).toMatch(/content", "embeds", or "components/);
   });
   it("does not render content or embeds when suppressed by V2, but keeps them in the message", () => {
     const a = ok({ content: "hi", embeds: [{ title: "t" }] });

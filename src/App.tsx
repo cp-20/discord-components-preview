@@ -105,7 +105,7 @@ export function App() {
 
   // Links in an older format (#p=, #p2=) can't be read any more; say so instead of silently showing the draft
   useEffect(() => {
-    if (/(?:^#|&)p2?=/.test(location.hash)) showToast("This link uses a retired format and can't be opened");
+    if (/(?:^#|&)p2?=/.test(location.hash)) showToast("This link uses a retired format and cannot be opened");
   }, []);
 
   /** Opens a #p3= hash in the editor, the same path a shared link takes */
@@ -145,9 +145,9 @@ export function App() {
     if (await copyText(url)) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1600);
-      showToast(url.length > 8000 ? `Link copied · ${url.length.toLocaleString("en-US")} characters, some apps cut links this long` : "Link copied");
+      showToast(url.length > 8000 ? `Link copied (${url.length.toLocaleString("en-US")} characters; some apps may truncate long URLs)` : "Link copied");
     } else {
-      showToast("Couldn't copy. The link is in the address bar");
+      showToast("Could not copy to clipboard; copy the URL from the address bar");
     }
   }, [text]);
 
@@ -166,7 +166,7 @@ export function App() {
     try {
       editor.current?.setText(JSON.stringify(JSON.parse(text), null, 2));
     } catch {
-      showToast("Fix the syntax error first");
+      showToast("Fix the JSON syntax error before formatting");
     }
   };
 
@@ -212,7 +212,7 @@ export function App() {
           <a
             class="brand"
             href="/"
-            aria-label="Message Preview, editor"
+            aria-label="Message Preview for Discord, editor"
             onClick={(e) => {
               if (!isPlainClick(e)) return;
               e.preventDefault();
@@ -229,7 +229,7 @@ export function App() {
               Message Preview <span class="brand-sub">for Discord</span>
             </span>
           </a>
-          <nav class="nav" aria-label="Views">
+          <nav class="nav" aria-label="Pages">
             {(["editor", "gallery", "docs"] as Route[]).map((r) => (
               <a
                 key={r}
@@ -254,8 +254,8 @@ export function App() {
             class="btn ghost icon-only"
             type="button"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            title={theme === "dark" ? "Light theme" : "Dark theme"}
-            aria-label="Toggle theme"
+            title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+            aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
           >
             <Icon name={theme === "dark" ? "sun" : "moon"} />
           </button>
@@ -264,13 +264,13 @@ export function App() {
             href="https://github.com/cp-20/discord-components-preview"
             target="_blank"
             rel="noopener noreferrer"
-            title="Source on GitHub"
-            aria-label="Source on GitHub"
+            title="View source on GitHub"
+            aria-label="View source on GitHub"
           >
             <Icon name="github" />
           </a>
           {route === "editor" && (
-            <button class="btn primary" type="button" onClick={copyLink} title="Copy a link with this payload (Ctrl+S)" aria-label="Copy link">
+            <button class="btn primary" type="button" onClick={copyLink} title="Copy shareable link (Ctrl+S)" aria-label="Copy link">
               <Icon name={copied ? "check" : "link"} />
               <span class="hide-sm">{copied ? "Copied" : "Copy link"}</span>
             </button>
@@ -291,7 +291,7 @@ export function App() {
       <div class="tabs" role="tablist" hidden={route !== "editor"}>
         <button role="tab" aria-selected={tab === "edit"} class={tab === "edit" ? "on" : ""} onClick={() => setTab("edit")}>
           Editor
-          {errorCount > 0 && <span class="tab-dot error" aria-label="has errors" />}
+          {errorCount > 0 && <span class="tab-dot error" aria-label="Has errors" />}
         </button>
         <button role="tab" aria-selected={tab === "preview"} class={tab === "preview" ? "on" : ""} onClick={() => setTab("preview")}>
           Preview
@@ -313,10 +313,10 @@ export function App() {
           <div class="editor-host" ref={editorHost} />
           <footer class="pane-foot">
             <Icon name="lock" size={14} />
-            <span class="foot-note">Kept only in the link, never sent to a server</span>
+            <span class="foot-note">Stored only in the URL; never sent to a server</span>
             {linkLength > DISCORD_MESSAGE_MAX && (
               <span class="foot-warn">
-                Link is <span class="num">{linkLength.toLocaleString("en-US")}</span> characters, too long to paste in a Discord message
+                URL is <span class="num">{linkLength.toLocaleString("en-US")}</span> characters, over Discord's 2,000-character message limit
               </span>
             )}
           </footer>
@@ -332,7 +332,7 @@ export function App() {
               type="button"
               aria-pressed={inspect}
               onClick={() => setInspect(!inspect)}
-              title="Click a component to find it in the JSON"
+              title="Click an element in the preview to highlight its JSON"
             >
               <Icon name="inspect" size={14} />
               Inspect
@@ -374,7 +374,7 @@ function Status({ analysis }: { analysis: ReturnType<typeof analyze> }) {
     return (
       <span class="status error">
         <span class="dot" />
-        {analysis.errors.length} {analysis.errors.length === 1 ? "problem" : "problems"}
+        {analysis.errors.length} {analysis.errors.length === 1 ? "error" : "errors"}
       </span>
     );
   }
@@ -424,8 +424,8 @@ function Problems({ kind, errors, onPick }: { kind: "syntax" | "structure"; erro
   return (
     <div class="problems">
       <div class="problems-card">
-        <h2>{kind === "syntax" ? "This isn't valid JSON yet" : "Discord can't render this payload"}</h2>
-        <p>{kind === "syntax" ? "Fix the spot below and the preview comes back." : "These parts of the payload are missing or have the wrong shape."}</p>
+        <h2>{kind === "syntax" ? "Invalid JSON" : "Cannot render payload"}</h2>
+        <p>{kind === "syntax" ? "Fix the syntax error below to restore the preview." : "Fix the required fields or types listed below."}</p>
         <ul class="issue-list">
           {errors.map((e, i) => (
             <IssueRow key={i} issue={e} onPick={onPick} kind="error" />
@@ -442,7 +442,7 @@ function Warnings({ warnings, onPick }: { warnings: Issue[]; onPick: (i: Issue) 
     <div class="warnings">
       <button type="button" class="warnings-head" onClick={() => setOpen(!open)} aria-expanded={open}>
         <span class="dot warn" />
-        {warnings.length} {warnings.length === 1 ? "thing" : "things"} Discord would reject
+        {warnings.length} Discord API {warnings.length === 1 ? "warning" : "warnings"}
         <Icon name="chevron" size={14} class={open ? "chev open" : "chev"} />
       </button>
       {open && (
@@ -501,7 +501,7 @@ function PresetMenu({ onPick }: { onPick: (json: string) => void }) {
           ))}
             </div>
           ))}
-          <div class="menu-foot">Replaces the editor. Undo with Ctrl+Z</div>
+          <div class="menu-foot">Replaces current JSON. Press Ctrl+Z to undo</div>
         </div>
       )}
     </div>
