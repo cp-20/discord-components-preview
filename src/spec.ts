@@ -35,7 +35,7 @@ export const embedFields: Row[] = [
   { key: "thumbnail", type: "{ url }", notes: "80×80 image in the top right" },
   { key: "image", type: "{ url }", notes: "Large image under the fields, up to 400×300" },
   { key: "footer", type: "{ text ≤2048, icon_url? }", notes: "Small muted line with a round 20px icon" },
-  { key: "timestamp", type: "ISO 8601 string", notes: "Shown in the footer as “Today at 13:15”, “Yesterday at …” or a date" },
+  { key: "timestamp", type: "ISO 8601 string", notes: "Shown in the footer as “Today at 9:30”, “Yesterday at …” or a date" },
 ];
 
 export interface ComponentSpec {

@@ -235,7 +235,7 @@ class Validator {
       this.warn([...path, "color"], "color is an integer from 0 to 16777215 (0xFFFFFF), e.g. 5793266 for #5865F2");
     }
     if (e.timestamp !== undefined && (typeof e.timestamp !== "string" || !ISO_DATE.test(e.timestamp) || Number.isNaN(Date.parse(e.timestamp)))) {
-      this.warn([...path, "timestamp"], 'timestamp is an ISO 8601 date such as "2026-11-27T13:15:00.000Z"');
+      this.warn([...path, "timestamp"], 'timestamp is an ISO 8601 date such as "2026-01-15T09:30:00.000Z"');
     }
     if (e.author !== undefined) {
       if (!isObj(e.author) || typeof e.author.name !== "string" || !e.author.name) this.warn([...path, "author"], 'author needs a "name"');

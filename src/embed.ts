@@ -58,7 +58,7 @@ export function layoutFields(fields: EmbedField[], hasThumbnail: boolean): Field
   );
 }
 
-/** Footer timestamp like the client: "Today at 13:15", "Yesterday at 9:00", else a short date and time */
+/** Footer timestamp like the client: "Today at 9:30", "Yesterday at 9:00", else a short date and time */
 export function formatEmbedTimestamp(iso: string, now = new Date(), locale?: string): string | null {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
