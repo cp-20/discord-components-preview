@@ -77,7 +77,8 @@ check("string select opens its options", (await page.locator(".dc-opt").count())
 // 6. Docs
 await page.goto(base + "/docs");
 await page.waitForSelector("#links");
-check("docs show the dictionary", (await page.locator(".code pre", { hasText: "allowed_mentions" }).count()) === 1);
+check("docs point agents to /llms.txt", (await page.locator('.doc-body a[href="/llms.txt"]').count()) === 1);
+check("docs leave the link encoding to /llms.txt", !(await page.locator(".doc-body").innerText()).includes("deflate"));
 
 // 7. Retired links are rejected with a notice
 await page.goto(base + "/#p=" + zlib.deflateRawSync(Buffer.from('{"content":"x"}')).toString("base64url"));

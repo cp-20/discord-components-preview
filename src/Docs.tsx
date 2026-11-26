@@ -1,9 +1,9 @@
-import { useEffect, useState } from "preact/hooks";
+// Docs for people writing payloads: what can be written and what Discord allows, each in the form that reads fastest.
+// Implementation details (link encoding, dictionary, hashes) belong in /llms.txt, not here.
 import type { ComponentChildren } from "preact";
-import { Example, CodeBlock } from "./Example";
+import { Example } from "./Example";
 import { presetById } from "./presets";
-import { DICTIONARY, DICTIONARY_VERSION } from "./dictionary";
-import { SITE, buttonStyles, componentSpecs, embedFields, emojiRules, flagRows, limits, markdownSyntax, messageFields, v2Rules, type Row } from "./spec";
+import { buttonStyles, componentSpecs, embedFields, flagRows, markdownSyntax, messageFields, type Row } from "./spec";
 
 interface DocsProps {
   theme: "dark" | "light";
@@ -18,8 +18,7 @@ const toc: Array<[string, string]> = [
   ["mixed", "Content, embeds and buttons"],
   ["v2", "Components V2"],
   ["emoji", "Custom emoji"],
-  ["limits", "Limits"],
-  ["links", "Share links"],
+  ["links", "Sharing"],
 ];
 
 function KeyTable({ rows, head }: { rows: Row[]; head: [string, string, string] }) {
@@ -59,35 +58,45 @@ function Section({ id, title, lead, children }: { id: string; title: string; lea
   );
 }
 
-const python = `import base64, json, zlib, urllib.request
-DICT = urllib.request.urlopen("${SITE}/p3-dictionary.txt").read()
+/** Classic vs Components V2, side by side */
+const modes: Array<[string, string, string]> = [
+  ["flags", "none", "32768"],
+  ["made of", "content, up to 10 embeds, up to 5 Action Rows", "components only"],
+  ["layout", "fixed order: content, embeds, rows", "Containers, Sections, Text Displays, Media Galleries, Separators, Files and Action Rows, in any order"],
+  ["limits", "2000 characters of content, 6000 across embeds", "40 components, 4000 characters across Text Displays"],
+];
 
-def p3_link(payload):
-    c = zlib.compressobj(9, zlib.DEFLATED, -15, zdict=DICT)  # -15 = raw deflate
-    raw = c.compress(json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode()) + c.flush()
-    return "${SITE}/#p3=" + base64.urlsafe_b64encode(raw).decode().rstrip("=")`;
+const emojiSyntax: Array<[string, string, string]> = [
+  ["In text", "<:name:id>", "<a:name:id>"],
+  ["On buttons and select options", '{ "id": "…", "name": "…" }', '{ "id": "…", "name": "…", "animated": true }'],
+];
 
-const node = `import zlib from "node:zlib";
-const DICT = Buffer.from(await (await fetch("${SITE}/p3-dictionary.txt")).arrayBuffer());
-
-const p3Link = (payload) =>
-  "${SITE}/#p3=" +
-  zlib.deflateRawSync(Buffer.from(JSON.stringify(payload)), { level: 9, dictionary: DICT }).toString("base64url");`;
-
-function useSha256(text: string) {
-  const [hex, setHex] = useState("");
-  useEffect(() => {
-    crypto.subtle
-      ?.digest("SHA-256", new TextEncoder().encode(text))
-      .then((buf) => setHex([...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("")))
-      .catch(() => {});
-  }, [text]);
-  return hex;
+function Table({ head, rows, code = 0 }: { head: string[]; rows: string[][]; code?: number }) {
+  return (
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            {head.map((h) => (
+              <th key={h}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r[0]}>
+              {r.map((c, i) => (
+                <td key={i}>{i > 0 && i <= code ? <code>{c}</code> : c}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 export function Docs({ theme, onOpen, onInteract }: DocsProps) {
-  const sha = useSha256(DICTIONARY);
-  const bytes = new TextEncoder().encode(DICTIONARY).length;
   const ex = (id: string) => {
     const p = presetById(id);
     return p && <Example preset={p} theme={theme} onOpen={onOpen} onInteract={onInteract} showJson />;
@@ -112,16 +121,7 @@ export function Docs({ theme, onOpen, onInteract }: DocsProps) {
       <div class="doc-body">
         <header class="page-head">
           <h1>Docs</h1>
-          <p>
-            Paste a Discord message payload into the editor and it is drawn the way the client draws it, checked against Discord's rules, and shareable as a link.
-            Everything runs in your browser; the payload lives in the link's fragment and never reaches a server.
-          </p>
-          <div class="agent-note">
-            <span class="agent-note-label mono">For AI agents</span>
-            <span>
-              <a href="/llms.txt">/llms.txt</a> has this page as plain text: the link algorithm with the exact dictionary, every format, and each example with a ready link.
-            </span>
-          </div>
+          <p>What you can write in a message payload and what Discord allows. Every example opens in the editor.</p>
         </header>
 
         <Section id="message" title="Message object" lead="The same object you send to Discord's API: create message, execute webhook, or the data of an interaction response. A bare array of components also works.">
@@ -129,11 +129,7 @@ export function Docs({ theme, onOpen, onInteract }: DocsProps) {
           <h3>Flags</h3>
           <KeyTable head={["value", "name", "notes"]} rows={flagRows} />
           <h3>Classic or Components V2</h3>
-          <ul class="doc-list">
-            {v2Rules.map((r) => (
-              <li key={r}>{r}</li>
-            ))}
-          </ul>
+          <Table head={["", "Classic", "Components V2"]} rows={modes} />
         </Section>
 
         <Section id="content" title="Content and markdown" lead="The simplest message is just content. The same markdown works in Text Displays, embed descriptions and field values.">
@@ -207,53 +203,16 @@ export function Docs({ theme, onOpen, onInteract }: DocsProps) {
           {ex("showtimes")}
         </Section>
 
-        <Section id="emoji" title="Custom emoji" lead="Server emoji load from the Discord CDN by id, in text and on buttons and select options.">
-          <ul class="doc-list">
-            {emojiRules.map((r) => (
-              <li key={r}>{r}</li>
-            ))}
-          </ul>
+        <Section id="emoji" title="Custom emoji" lead="Any server emoji works by its id. A wrong id shows the raw code instead of an image.">
+          <Table head={["where", "static", "animated"]} rows={emojiSyntax} code={2} />
+          <p class="doc-note">Unicode emoji on buttons and options: <code>{'{ "name": "🎉" }'}</code>.</p>
           {ex("emoji")}
         </Section>
 
-        <Section id="limits" title="Limits" lead="The preview still draws a payload that breaks these, and lists each problem under it with the line to fix.">
-          <dl class="limits">
-            {limits.map(([what, max]) => (
-              <div key={what}>
-                <dt>{what}</dt>
-                <dd class="num">{max}</dd>
-              </div>
-            ))}
-          </dl>
-        </Section>
-
-        <Section
-          id="links"
-          title="Share links"
-          lead="A link carries the whole payload in its fragment: minified JSON, compressed with raw DEFLATE and a preset dictionary of common words and Discord phrases, then base64url."
-        >
-          <pre class="formula mono">
-            {SITE}/#p3= base64url( deflate-raw( UTF-8( minified JSON ), dictionary ) )
-          </pre>
-          <ol class="doc-list steps">
-            <li>Serialize the payload as JSON. Minified is shortest; the editor pretty-prints it on open.</li>
-            <li>Encode as UTF-8.</li>
-            <li>Compress with raw DEFLATE (RFC 1951, no zlib header or checksum) using the dictionary below as the preset dictionary. Level 9 gives the shortest links.</li>
-            <li>Encode as base64url (RFC 4648 §5) without padding, and append it after #p3=.</li>
-          </ol>
-          <CodeBlock label="Python" code={python} />
-          <CodeBlock label="Node.js" code={node} />
-          <h3>Dictionary, version {DICTIONARY_VERSION}</h3>
+        <Section id="links" title="Sharing" lead="Copy link (Ctrl+S) gives a link that holds the whole message. Nothing is saved on a server, so anyone with the link sees the same preview.">
           <p class="doc-note">
-            The UTF-8 bytes of the text below, with no trailing newline. <span class="num">{bytes.toLocaleString("en-US")}</span> bytes
-            {sha && (
-              <>
-                , SHA-256 <code class="sha">{sha}</code>
-              </>
-            )}
-            . Also served as raw bytes at <a href="/p3-dictionary.txt">/p3-dictionary.txt</a>. It holds common Japanese and English words, then JSON phrases frequent in Discord payloads. It is frozen: a new dictionary would get a new prefix.
+            To build links from code, see <a href="/llms.txt">/llms.txt</a>.
           </p>
-          <CodeBlock label="JSON string" code={JSON.stringify(DICTIONARY)} />
         </Section>
       </div>
     </div>

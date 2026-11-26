@@ -48,7 +48,7 @@ export interface ComponentSpec {
 
 export const componentSpecs: ComponentSpec[] = [
   { type: 1, name: "Action Row", keys: "components: up to 5 Buttons, or 1 select menu", where: "Top level, Container", v2: false },
-  { type: 2, name: "Button", keys: "style 1–6, label, emoji, custom_id (1–4), url (5), sku_id (6), disabled", where: "Action Row, Section accessory", v2: false },
+  { type: 2, name: "Button", keys: "style 1–6, label (≤80), emoji, custom_id (1–4), url (5), sku_id (6), disabled", where: "Action Row, Section accessory", v2: false },
   { type: 3, name: "String Select", keys: "custom_id, options[{label, value, description?, emoji?, default?}], placeholder, min_values, max_values, disabled", where: "Action Row", v2: false },
   { type: 5, name: "User Select", keys: "custom_id, placeholder, disabled", where: "Action Row", v2: false },
   { type: 6, name: "Role Select", keys: "custom_id, placeholder, disabled", where: "Action Row", v2: false },

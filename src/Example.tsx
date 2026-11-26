@@ -53,10 +53,6 @@ export function Example({ preset, theme, onOpen, onInteract, showJson }: Example
         </div>
       </div>
       {jsonOpen && <CodeBlock code={json} label="payload.json" />}
-      <div class="example-foot mono">
-        <span>{preset.kind === "v2" ? "Components V2" : "Classic"}</span>
-        <span class="num">#p3 · {hash.length.toLocaleString("en-US")} chars</span>
-      </div>
     </article>
   );
 }

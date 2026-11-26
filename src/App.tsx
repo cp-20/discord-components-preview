@@ -53,6 +53,9 @@ async function copyText(text: string) {
   }
 }
 
+/** A link longer than this can't be pasted into a Discord message without Nitro */
+const DISCORD_MESSAGE_MAX = 2000;
+
 export function App() {
   const [text, setText] = useState(initialText);
   const [theme, setTheme] = useState<Theme>(() => (store.get("theme") === "light" ? "light" : "dark"));
@@ -72,6 +75,7 @@ export function App() {
 
   const analysis = useMemo(() => analyze(text), [text]);
   const fragment = useMemo(() => encodePayload(text), [text]);
+  const linkLength = `${location.origin}/#p3=${fragment}`.length;
 
   // Editor lives outside Preact's tree
   useEffect(() => {
@@ -309,10 +313,12 @@ export function App() {
           <div class="editor-host" ref={editorHost} />
           <footer class="pane-foot">
             <Icon name="lock" size={14} />
-            <span class="mono">
-              #p3= <span class="num">{(fragment.length + 4).toLocaleString("en-US")}</span> chars
-            </span>
-            <span class="foot-note">Stored in the link's fragment, which never reaches the server</span>
+            <span class="foot-note">Kept only in the link, never sent to a server</span>
+            {linkLength > DISCORD_MESSAGE_MAX && (
+              <span class="foot-warn">
+                Link is <span class="num">{linkLength.toLocaleString("en-US")}</span> characters, too long to paste in a Discord message
+              </span>
+            )}
           </footer>
         </section>
 

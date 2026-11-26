@@ -19,7 +19,7 @@ export const PAGES: Record<Route, PageMeta> = {
     path: "/",
     title: "Message Preview for Discord: embeds and Components V2 editor",
     description:
-      "Write a Discord message payload (content, embeds, components, Components V2) and see it rendered like the Discord client. Share it with a link; the payload stays in the URL fragment.",
+      "Write a Discord message payload (content, embeds, components, Components V2) and see it rendered like the Discord client. Share it as a link; nothing is stored on a server.",
     heading: NAME,
   },
   gallery: {
@@ -33,7 +33,7 @@ export const PAGES: Record<Route, PageMeta> = {
     path: "/docs",
     title: `Docs · ${NAME}`,
     description:
-      "Which Discord message formats the preview supports, the limits and warnings it checks, and how share links (#p3=) encode a payload.",
+      "What a Discord message payload can contain and what Discord allows: message fields, markdown, embeds, Components V2, custom emoji and their limits, each with an example.",
     heading: "Docs",
   },
 };
