@@ -1,17 +1,13 @@
-// Builds /llms.txt: everything an agent needs to make links and look up payload shapes without the UI.
-import { DICTIONARY, DICTIONARY_VERSION } from "./dictionary";
+// Builds /llms.txt: what an agent needs to use the tool for a person — what it does, which payloads it
+// understands, and ready example links. How links are encoded lives in the source; this file points there.
 import { presets } from "./presets";
 import { shareUrl } from "./share";
-import { SITE, buttonStyles, componentSpecs, embedFields, emojiRules, flagRows, limits, markdownSyntax, messageFields, v2Rules, type Row } from "./spec";
+import { REPO, SITE, buttonStyles, componentSpecs, embedFields, emojiSyntax, flagRows, markdownSyntax, messageFields, modes, type Row } from "./spec";
 
 const table = (head: [string, string, string], rows: Row[]) =>
   [`| ${head.join(" | ")} |`, "| --- | --- | --- |", ...rows.map((r) => `| \`${r.key}\` | ${r.type} | ${r.notes} |`)].join("\n");
 
-export function dictionaryBytes(): number {
-  return new TextEncoder().encode(DICTIONARY).length;
-}
-
-export function buildLlmsTxt(sha256: string): string {
+export function buildLlmsTxt(): string {
   const examples = presets
     .map((p) => {
       const json = JSON.stringify(p.payload);
@@ -19,63 +15,26 @@ export function buildLlmsTxt(sha256: string): string {
     })
     .join("\n\n");
 
-  return `# Discord Message Preview
+  return `# Message Preview for Discord
 
-> Browser tool at ${SITE} that renders a Discord message payload (content, embeds, components, Components V2) the way the Discord client draws it, validates it against Discord's rules, and shares it as a link. The payload travels in the URL fragment, so it never reaches a server. No account or API key.
+> ${SITE} shows a Discord message payload (content, embeds, components, Components V2) the way the Discord client draws it, flags what Discord's API would reject, and shares it as a link. It runs in the browser; nothing is stored on a server. No account or API key.
 
 Use it to:
-- make a link that opens a payload in the editor: \`${SITE}/#p3=<encoded>\` (algorithm below, no UI needed)
+- show a person what a bot or webhook message will look like before it is sent
+- check a payload against Discord's rules (errors and warnings point to line:column)
 - look up the shape of content, embeds and components (sections below)
-- show a person what a bot or webhook message will look like before sending it
 
-Pages: \`/\` editor with live preview, \`/gallery\` examples, \`/docs\` human-readable docs, \`/llms.txt\` this file, \`/p3-dictionary.txt\` the compression dictionary as raw bytes.
+Pages: \`/\` editor with live preview, \`/gallery\` examples, \`/docs\` the same reference for people.
 
-## Making a link (#p3=)
+## Sharing a payload
 
-This is the only link format the site reads. Older links (\`#p=\`, \`#p2=\`) are not decoded any more; the editor shows a notice instead.
+A share link looks like \`${SITE}/#p3=…\` and opens the payload in the editor.
 
-1. Serialize the payload as JSON. Minified is shortest: \`JSON.stringify(payload)\` or Python \`json.dumps(payload, ensure_ascii=False, separators=(",", ":"))\`. Any valid JSON is accepted; the editor pretty-prints it on open.
-2. Encode the JSON text as UTF-8.
-3. Compress with raw DEFLATE (RFC 1951: no zlib or gzip header and no checksum, 32 KiB window) using the DICTIONARY below as the preset dictionary. Any compression level works; 9 gives the shortest links.
-4. Encode the bytes as base64url (RFC 4648 §5, \`-\` and \`_\`) and remove \`=\` padding.
-5. The link is \`${SITE}/#p3=<result>\`.
+- If an example below fits, give its ready link.
+- Ask the person to paste the JSON into ${SITE} and press Copy link.
+- Build the link in code: follow \`encodePayload\` in ${REPO}/blob/main/src/share.ts (the dictionary it uses is ${REPO}/blob/main/src/dictionary.ts).
 
-Decoding is the reverse: base64url-decode, raw-inflate with the same dictionary, UTF-8 decode. A stream made without the dictionary still decodes, it is just longer. A dictionary-compressed stream can't be inflated without it.
-
-Python:
-
-\`\`\`python
-import base64, json, zlib, urllib.request
-DICT = urllib.request.urlopen("${SITE}/p3-dictionary.txt").read()   # or paste the JSON string below, .encode("utf-8")
-def p3_link(payload):
-    c = zlib.compressobj(9, zlib.DEFLATED, -15, zdict=DICT)          # -15 = raw deflate
-    raw = c.compress(json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode()) + c.flush()
-    return "${SITE}/#p3=" + base64.urlsafe_b64encode(raw).decode().rstrip("=")
-def p3_decode(value):
-    d = zlib.decompressobj(-15, zdict=DICT)
-    return json.loads(d.decompress(base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))) + d.flush())
-\`\`\`
-
-Node.js (built-in zlib):
-
-\`\`\`js
-import zlib from "node:zlib";
-const DICT = Buffer.from(DICTIONARY_JSON_STRING, "utf8");             // the JSON string literal below
-const link = (payload) =>
-  "${SITE}/#p3=" + zlib.deflateRawSync(Buffer.from(JSON.stringify(payload)), { level: 9, dictionary: DICT }).toString("base64url");
-\`\`\`
-
-Browser (fflate, what the site itself uses): \`toBase64Url(deflateSync(strToU8(json), { level: 9, dictionary: strToU8(DICTIONARY) }))\`.
-
-### Dictionary (version ${DICTIONARY_VERSION})
-
-The dictionary is the UTF-8 encoding of the string below (a JSON string literal; parse it to get the exact text, there is no trailing newline). ${dictionaryBytes()} bytes, SHA-256 \`${sha256}\`. The same bytes are served at ${SITE}/p3-dictionary.txt. It holds common Japanese words, then common English words, then minified JSON phrases frequent in Discord payloads, rarest first (DEFLATE copies from near the end cost fewer bits). It is frozen: a new dictionary would get a new prefix (#p4=).
-
-\`\`\`json
-${JSON.stringify(DICTIONARY)}
-\`\`\`
-
-## Payload: message object
+## Message object
 
 The editor accepts a message object as sent to the Discord API (create message, webhook execute, interaction response \`data\`), or a bare array of components.
 
@@ -85,9 +44,11 @@ ${table(["key", "type", "notes"], messageFields)}
 
 ${table(["value", "name", "notes"], flagRows)}
 
-### Classic vs Components V2
+### Classic or Components V2
 
-${v2Rules.map((r) => `- ${r}`).join("\n")}
+| | Classic | Components V2 |
+| --- | --- | --- |
+${modes.map(([what, classic, v2]) => `| ${what} | ${classic} | ${v2} |`).join("\n")}
 
 ## Content markdown
 
@@ -97,7 +58,7 @@ ${markdownSyntax.map(([syntax, what]) => `- \`${syntax}\`: ${what}`).join("\n")}
 
 ## Embeds
 
-\`embeds\` is an array of rich embeds. All keys are optional, but an embed needs at least one of title, description, fields, author, footer, image or thumbnail. Images accept http(s) URLs (attachment:// is shown as a placeholder).
+\`embeds\` is an array of rich embeds. All keys are optional, but an embed needs at least one of title, description, fields, author, footer, image or thumbnail.
 
 ${table(["key", "type", "notes"], embedFields)}
 
@@ -109,17 +70,13 @@ Button styles: ${buttonStyles}.
 | ---: | --- | --- | --- | --- |
 ${componentSpecs.map((c) => `| ${c.type} | ${c.name} | ${c.keys} | ${c.where} | ${c.v2 ? "yes" : "no"} |`).join("\n")}
 
-Unknown types are shown as raw JSON in the preview (useful for debugging); types 4 (Text Input), 18 (Label) and 19 (File Upload) belong to modals and are flagged.
-
 ## Custom emoji
 
-${emojiRules.map((r) => `- ${r}`).join("\n")}
+| where | static | animated |
+| --- | --- | --- |
+${emojiSyntax.map(([where, still, animated]) => `| ${where} | \`${still}\` | \`${animated}\` |`).join("\n")}
 
-## Limits the validator checks
-
-${limits.map(([what, max]) => `- ${what}: ${max}`).join("\n")}
-
-Errors (invalid JSON, or a shape that can't be drawn) replace the preview with a list. Warnings (things Discord's API would reject) are listed under the preview with line:column.
+Unicode emoji on buttons and options: \`{ "name": "🎉" }\`. A wrong id shows the raw code instead of an image.
 
 ## Examples
 

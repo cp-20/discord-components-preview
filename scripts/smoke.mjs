@@ -1,7 +1,6 @@
 // End-to-end check of the main flows against a running site (local preview or production).
 // Usage: node scripts/smoke.mjs [baseUrl]
 import { chromium } from "playwright";
-import { createHash } from "node:crypto";
 import zlib from "node:zlib";
 
 const base = (process.argv[2] ?? "http://localhost:4173").replace(/\/$/, "");
@@ -14,9 +13,7 @@ const check = (name, ok, detail = "") => {
 // Agent docs, read the way an agent would
 const llms = await (await fetch(base + "/llms.txt")).text();
 const dictionary = Buffer.from(await (await fetch(base + "/p3-dictionary.txt")).arrayBuffer());
-const published = JSON.parse(/### Dictionary[\s\S]*?```json\n(.*)\n```/.exec(llms)?.[1] ?? '""');
-check("llms.txt documents #p3= and the dictionary", llms.includes("#p3=") && Buffer.from(published, "utf8").equals(dictionary));
-check("dictionary hash matches llms.txt", llms.includes(createHash("sha256").update(dictionary).digest("hex")));
+check("llms.txt points to the link encoding in the source", llms.includes("/blob/main/src/share.ts") && !/deflate/i.test(llms));
 
 const payload = { content: "smoke <:check:921544057312915498>", embeds: [{ title: "Smoke test", color: 5793266, fields: [{ name: "a", value: "1", inline: true }] }] };
 const agentLink = base + "/#p3=" + zlib.deflateRawSync(Buffer.from(JSON.stringify(payload)), { level: 9, dictionary }).toString("base64url");
@@ -28,7 +25,7 @@ const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 const editorText = () => page.evaluate(() => document.querySelector(".cm-content")?.cmView?.view?.state.doc.toString() ?? document.querySelector(".cm-content")?.textContent ?? "");
 
-// 1. A link built from /llms.txt opens in the editor
+// 1. A link built the way src/share.ts describes opens in the editor
 await page.goto(agentLink);
 await page.waitForSelector(".dc-embed");
 check("agent-built link renders content and embed", (await page.locator(".dc-embed-title").textContent()) === "Smoke test");
@@ -77,8 +74,8 @@ check("string select opens its options", (await page.locator(".dc-opt").count())
 // 6. Docs
 await page.goto(base + "/docs");
 await page.waitForSelector("#links");
-check("docs point agents to /llms.txt", (await page.locator('.doc-body a[href="/llms.txt"]').count()) === 1);
-check("docs leave the link encoding to /llms.txt", !(await page.locator(".doc-body").innerText()).includes("deflate"));
+check("docs point agents to /llms.txt", (await page.locator('.doc-toc a[href="/llms.txt"]').count()) === 1);
+check("docs leave the link encoding to the source", !(await page.locator(".doc-body").innerText()).includes("deflate"));
 
 // 7. Retired links are rejected with a notice
 await page.goto(base + "/#p=" + zlib.deflateRawSync(Buffer.from('{"content":"x"}')).toString("base64url"));

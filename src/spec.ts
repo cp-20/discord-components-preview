@@ -2,6 +2,7 @@
 // so the two never disagree.
 
 export const SITE = "https://discord.cp20.dev";
+export const REPO = "https://github.com/cp-20/discord-components-preview";
 
 export interface Row {
   key: string;
@@ -79,28 +80,19 @@ export const markdownSyntax: Array<[string, string]> = [
   ["<:name:id> <a:name:id>", "Custom emoji from the Discord CDN, a: for animated"],
 ];
 
-export const limits: Array<[string, string]> = [
-  ["content", "2000 characters"],
-  ["embeds", "10 per message, 6000 characters in total"],
-  ["embed title / description", "256 / 4096"],
-  ["embed fields", "25, name 256, value 1024"],
-  ["classic components", "5 Action Rows, 5 buttons or 1 select each"],
-  ["Components V2", "40 components (nested included), 4000 characters across Text Displays"],
-  ["button label", "80 characters"],
-  ["Media Gallery", "1–10 items"],
+
+
+
+/** Classic vs Components V2, side by side: [aspect, classic, V2] */
+export const modes: Array<[string, string, string]> = [
+  ["flags", "none", "32768"],
+  ["made of", "content, up to 10 embeds, up to 5 Action Rows", "components only"],
+  ["layout", "fixed order: content, embeds, rows", "Containers, Sections, Text Displays, Media Galleries, Separators, Files and Action Rows, in any order"],
+  ["limits", "2000 characters of content, 6000 across embeds", "40 components, 4000 characters across Text Displays"],
 ];
 
-export const v2Rules = [
-  "Without flags: 32768 a message is classic: content, embeds and up to 5 Action Rows of buttons or a select.",
-  "With flags: 32768 (IS_COMPONENTS_V2) the components are the whole message. content and embeds are rejected by Discord; the preview warns and does not draw them.",
-  "Using a V2 component (Container, Section, Text Display, …) without the flag is rejected too; the preview warns.",
-  "A bare array of components is accepted as a shortcut for { \"components\": [...] }.",
-];
-
-export const emojiRules = [
-  "In text (content, Text Display, embed title, description, field name and value): <:name:id> for a still emoji, <a:name:id> for an animated one.",
-  "On buttons and select options: \"emoji\": { \"id\": \"…\", \"name\": \"…\", \"animated\": true } for custom, { \"name\": \"🎉\" } for unicode.",
-  "Images load from https://cdn.discordapp.com/emojis/<id>.webp (animated: .gif). The name doesn't matter for the image.",
-  "If the CDN has no such emoji (404), the raw code is shown as a grey chip so you can spot the wrong id.",
-  "A message whose content is only emoji (up to 30) shows them large, like the client.",
+/** Custom emoji syntax: [where, static, animated] */
+export const emojiSyntax: Array<[string, string, string]> = [
+  ["In text", "<:name:id>", "<a:name:id>"],
+  ["On buttons and select options", '{ "id": "…", "name": "…" }', '{ "id": "…", "name": "…", "animated": true }'],
 ];

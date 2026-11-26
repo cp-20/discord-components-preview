@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { createHash } from "node:crypto";
 import { presets } from "../src/presets";
 import { buildLlmsTxt } from "../src/llms";
 import { DICTIONARY } from "../src/dictionary";
@@ -16,7 +15,7 @@ const sources: [string, string][] = [
   ["scripts/shot-cases.json", readFileSync(new URL("../scripts/shot-cases.json", import.meta.url), "utf8")],
   ["test/fixtures/heldout-payloads.json", readFileSync(new URL("./fixtures/heldout-payloads.json", import.meta.url), "utf8")],
   ["dictionary", DICTIONARY],
-  ["/llms.txt", buildLlmsTxt(createHash("sha256").update(DICTIONARY).digest("hex"))],
+  ["/llms.txt", buildLlmsTxt()],
 ];
 
 describe("examples stay generic", () => {

@@ -1,6 +1,5 @@
 import { defineConfig, type Plugin } from "vite";
 import preact from "@preact/preset-vite";
-import { createHash } from "node:crypto";
 import { DICTIONARY } from "./src/dictionary";
 import { buildLlmsTxt } from "./src/llms";
 import { htmlForRoute, robotsTxt, sitemapXml } from "./src/seo";
@@ -10,8 +9,7 @@ import { join } from "node:path";
 /** Generates /llms.txt and /p3-dictionary.txt from the source, in dev and in the build */
 function agentDocs(): Plugin {
   const files = () => {
-    const sha = createHash("sha256").update(DICTIONARY, "utf8").digest("hex");
-    return { "llms.txt": buildLlmsTxt(sha), "p3-dictionary.txt": DICTIONARY, "robots.txt": robotsTxt(), "sitemap.xml": sitemapXml() };
+    return { "llms.txt": buildLlmsTxt(), "p3-dictionary.txt": DICTIONARY, "robots.txt": robotsTxt(), "sitemap.xml": sitemapXml() };
   };
   return {
     name: "agent-docs",

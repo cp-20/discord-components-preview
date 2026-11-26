@@ -59,12 +59,15 @@ describe("share links (#p3=)", () => {
 });
 
 describe("/llms.txt", () => {
-  const txt = buildLlmsTxt(createHash("sha256").update(Buffer.from(DICTIONARY, "utf8")).digest("hex"));
-  it("publishes the exact dictionary, and every example link decodes with it the way an agent would", () => {
-    const published = Buffer.from(JSON.parse(/### Dictionary[\s\S]*?```json\n(.*)\n```/.exec(txt)![1]), "utf8");
-    expect(published.equals(Buffer.from(DICTIONARY, "utf8"))).toBe(true);
+  const txt = buildLlmsTxt();
+  it("gives a ready link for every example, and each decodes to its payload", () => {
+    const dictionary = Buffer.from(DICTIONARY, "utf8");
     const links = [...txt.matchAll(/^Link: \S+#p3=([A-Za-z0-9_-]+)\n\n```json\n(.*)\n```/gm)];
     expect(links.length).toBe(presets.length);
-    for (const [, value, json] of links) expect(zlib.inflateRawSync(Buffer.from(value, "base64url"), { dictionary: published }).toString()).toBe(json);
+    for (const [, value, json] of links) expect(zlib.inflateRawSync(Buffer.from(value, "base64url"), { dictionary }).toString()).toBe(json);
+  });
+  it("is for users: points to the source for the link encoding instead of restating it", () => {
+    expect(txt).toContain("/blob/main/src/share.ts");
+    for (const detail of [/deflate/i, /base64/i, /sha-?256/i, /p3-dictionary\.txt/, /RFC \d+/]) expect(txt).not.toMatch(detail);
   });
 });

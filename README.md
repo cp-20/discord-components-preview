@@ -10,7 +10,7 @@ Share any payload as a link; the JSON travels in the URL fragment, so it never r
 | [`/`](https://discord.cp20.dev) | Editor with live preview, validation and share links |
 | [`/gallery`](https://discord.cp20.dev/gallery) | Every example, rendered, each with *Open in editor* |
 | [`/docs`](https://discord.cp20.dev/docs) | Formats, limits and the link format, for people |
-| [`/llms.txt`](https://discord.cp20.dev/llms.txt) | The same for AI agents: link algorithm, exact dictionary, every format, example links |
+| [`/llms.txt`](https://discord.cp20.dev/llms.txt) | The same for AI agents: formats and ready example links (link encoding: see `src/share.ts`) |
 | [`/p3-dictionary.txt`](https://discord.cp20.dev/p3-dictionary.txt) | The compression dictionary as raw bytes |
 
 `/llms.txt` is generated from the source at build time (`src/llms.ts`, `src/spec.ts`), so it always matches what the site does.

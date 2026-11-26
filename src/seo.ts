@@ -75,7 +75,7 @@ export function robotsTxt(): string {
     "User-agent: *",
     "Allow: /",
     "",
-    "# Docs for AI agents (link format, dictionary, every supported payload): " + SITE + "/llms.txt",
+    "# For AI agents (supported formats, example links): " + SITE + "/llms.txt",
     "",
     `Sitemap: ${SITE}/sitemap.xml`,
     "",

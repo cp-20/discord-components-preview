@@ -1,9 +1,9 @@
 // Docs for people writing payloads: what can be written and what Discord allows, each in the form that reads fastest.
-// Implementation details (link encoding, dictionary, hashes) belong in /llms.txt, not here.
+// Implementation details (link encoding, dictionary) stay in the source; link to it instead of restating it.
 import type { ComponentChildren } from "preact";
 import { Example } from "./Example";
 import { presetById } from "./presets";
-import { buttonStyles, componentSpecs, embedFields, flagRows, markdownSyntax, messageFields, type Row } from "./spec";
+import { REPO, buttonStyles, componentSpecs, embedFields, emojiSyntax, flagRows, markdownSyntax, messageFields, modes, type Row } from "./spec";
 
 interface DocsProps {
   theme: "dark" | "light";
@@ -57,19 +57,6 @@ function Section({ id, title, lead, children }: { id: string; title: string; lea
     </section>
   );
 }
-
-/** Classic vs Components V2, side by side */
-const modes: Array<[string, string, string]> = [
-  ["flags", "none", "32768"],
-  ["made of", "content, up to 10 embeds, up to 5 Action Rows", "components only"],
-  ["layout", "fixed order: content, embeds, rows", "Containers, Sections, Text Displays, Media Galleries, Separators, Files and Action Rows, in any order"],
-  ["limits", "2000 characters of content, 6000 across embeds", "40 components, 4000 characters across Text Displays"],
-];
-
-const emojiSyntax: Array<[string, string, string]> = [
-  ["In text", "<:name:id>", "<a:name:id>"],
-  ["On buttons and select options", '{ "id": "…", "name": "…" }', '{ "id": "…", "name": "…", "animated": true }'],
-];
 
 function Table({ head, rows, code = 0 }: { head: string[]; rows: string[][]; code?: number }) {
   return (
@@ -211,7 +198,7 @@ export function Docs({ theme, onOpen, onInteract }: DocsProps) {
 
         <Section id="links" title="Sharing" lead="Copy link (Ctrl+S) gives a link that holds the whole message. Nothing is saved on a server, so anyone with the link sees the same preview.">
           <p class="doc-note">
-            To build links from code, see <a href="/llms.txt">/llms.txt</a>.
+            To build links from code, follow <a href={`${REPO}/blob/main/src/share.ts`}>src/share.ts</a>.
           </p>
         </Section>
       </div>
