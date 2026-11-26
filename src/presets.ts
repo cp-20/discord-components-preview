@@ -199,7 +199,7 @@ const richEmbed = {
       thumbnail: { url: img("poster") },
       image: { url: img("city") },
       footer: { text: "Film club · 3rd screening this season", icon_url: img("record") },
-      timestamp: "2026-11-27T09:00:00.000Z",
+      timestamp: "2026-12-04T09:00:00.000Z",
     },
   ],
 };
@@ -218,7 +218,7 @@ const contentAndEmbeds = {
         { name: "Author", value: "<@123456789012345678>", inline: true },
       ],
       footer: { text: "CI · nightly" },
-      timestamp: "2026-11-27T03:12:00.000Z",
+      timestamp: "2026-12-04T03:12:00.000Z",
     },
     {
       title: "Last green build",

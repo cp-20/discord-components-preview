@@ -72,7 +72,7 @@ Fragment length in characters, `#p2=` (version 1 dictionary, 1,993 bytes) vs `#p
 
 | set | `#p2=` | `#p3=` | change |
 | --- | ---: | ---: | ---: |
-| 10 bundled examples | 4,317 | 4,054 | −6.1% |
+| 10 bundled examples | 4,317 | 4,055 | −6.1% |
 | 10 held-out payloads (`test/fixtures`) | 2,395 | 1,997 | −16.6% |
 
 Also measured and not adopted: shortening JSON keys to one-letter tokens (−1.3%, and a custom transform agents would have to reimplement), brotli without a custom dictionary (+13%), zstd with the same dictionary (+5%), a 20 KB dictionary with 2,000 more English words (another −2% for three times the size).
